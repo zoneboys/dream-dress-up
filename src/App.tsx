@@ -537,16 +537,26 @@ function App() {
               📁
             </button>
 
-            {/* 照片出口 - 显示待处理状态 */}
-            <div className={`camera-output ${pendingPhoto ? 'has-photo' : ''}`}>
+            {/* 照片出口 */}
+            <div className="camera-output">
+              {/* 待处理照片（在出口上方） */}
               {pendingPhoto && (
-                <div className={`output-photo-preview ${pendingPhoto.isGenerating ? 'generating' : ''}`}>
-                  <img src={pendingPhoto.photo} alt="待处理" />
-                  {pendingPhoto.isGenerating && (
-                    <div className="output-photo-loading">
-                      <div className="spinner-tiny"></div>
+                <div className="pending-photo-wrapper">
+                  <div className={`pending-photo-card ${pendingPhoto.isGenerating ? 'generating' : ''}`}>
+                    <div className="pending-photo-image">
+                      <img src={pendingPhoto.photo} alt="待处理" />
+                      {pendingPhoto.isGenerating && (
+                        <div className="pending-photo-loading">
+                          <span>AI生成中...</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <div className="pending-photo-info">
+                      <span className="pending-photo-hint">
+                        {pendingPhoto.isGenerating ? '请稍候' : '点击编辑'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -690,7 +700,7 @@ function App() {
         </div>
       )}
 
-      {/* 历史记录画廊 */}
+      {/* 历史记录画廊 - 按名字分组 */}
       {showHistory && (
         <div className="gallery-overlay" onClick={() => setShowHistory(false)}>
           <div className="gallery-container" onClick={(e) => e.stopPropagation()}>
@@ -704,26 +714,46 @@ function App() {
                 <p>还没有记录哦，快去拍照吧！</p>
               </div>
             ) : (
-              <div className="gallery-grid">
-                {history.map((item) => (
-                  <div
-                    key={item.id}
-                    className="gallery-item"
-                    onClick={() => setSelectedHistoryItem(item)}
-                  >
-                    <img src={item.resultPhoto} alt={item.name} />
-                    <div className="gallery-item-info">
-                      <span className="gallery-item-name">{item.name}</span>
+              <div className="gallery-grouped">
+                {/* 按名字分组 */}
+                {Object.entries(
+                  history.reduce((groups, item) => {
+                    const name = item.name || '未命名';
+                    if (!groups[name]) {
+                      groups[name] = [];
+                    }
+                    groups[name].push(item);
+                    return groups;
+                  }, {} as Record<string, HistoryItem[]>)
+                ).map(([name, items]) => (
+                  <div key={name} className="gallery-group">
+                    <div className="gallery-group-header">
+                      <span className="gallery-group-name">{name}</span>
+                      <span className="gallery-group-count">{items.length} 张</span>
                     </div>
-                    <button
-                      className="gallery-item-delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteHistoryItem(item.id);
-                      }}
-                    >
-                      ✕
-                    </button>
+                    <div className="gallery-group-grid">
+                      {items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="gallery-item"
+                          onClick={() => setSelectedHistoryItem(item)}
+                        >
+                          <img src={item.resultPhoto} alt={item.name} />
+                          <div className="gallery-item-dream">
+                            <span>{item.dream}</span>
+                          </div>
+                          <button
+                            className="gallery-item-delete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteHistoryItem(item.id);
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

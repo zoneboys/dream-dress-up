@@ -294,42 +294,53 @@ function App() {
 
         // 显影动画（逐渐显示）- 更慢的速度
         let progress = 0;
+        let hasAddedToHistory = false; // 防止重复添加
         const developInterval = setInterval(() => {
           progress += 1; // 更慢的增量
-          setFilms(prev => {
-            const updated = prev.map(f =>
-              f.id === filmId
-                ? { ...f, developProgress: Math.min(progress, 100) }
-                : f
-            );
 
-            if (progress >= 100) {
-              clearInterval(developInterval);
-              // 显影完成后保存到历史记录并从 films 移除
-              const completedFilm = updated.find(f => f.id === filmId);
-              if (completedFilm) {
+          if (progress >= 100) {
+            clearInterval(developInterval);
+
+            // 防止重复添加到历史
+            if (hasAddedToHistory) return;
+            hasAddedToHistory = true;
+
+            // 先获取胶片信息
+            setFilms(prev => {
+              const completedFilm = prev.find(f => f.id === filmId);
+              // 移除已完成的胶片
+              return prev.filter(f => f.id !== filmId);
+            });
+
+            // 添加到历史记录（在 setFilms 外面，避免重复）
+            setTimeout(() => {
+              setHistory(prevHistory => {
+                // 再次检查是否已存在（防止重复）
+                if (prevHistory.some(h => h.originalPhoto === newFilm.originalPhoto && h.dream === newFilm.dream)) {
+                  return prevHistory;
+                }
                 const newItem: HistoryItem = {
                   id: Date.now().toString(),
-                  name: completedFilm.name || '未命名',
-                  dream: completedFilm.dream,
-                  originalPhoto: completedFilm.originalPhoto,
+                  name: newFilm.name || '未命名',
+                  dream: newFilm.dream,
+                  originalPhoto: newFilm.originalPhoto,
                   resultPhoto: imageUrl,
                   timestamp: Date.now(),
-                  position: completedFilm.position,
+                  position: newFilm.position,
                 };
-                // 使用 setTimeout 确保在 setFilms 之后执行
-                setTimeout(() => {
-                  setHistory(prevHistory => {
-                    const newHistory = [newItem, ...prevHistory].slice(0, 50);
-                    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
-                    return newHistory;
-                  });
-                }, 0);
-              }
-              return updated.filter(f => f.id !== filmId);
-            }
-            return updated;
-          });
+                const newHistory = [newItem, ...prevHistory].slice(0, 50);
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+                return newHistory;
+              });
+            }, 50);
+          } else {
+            // 更新显影进度
+            setFilms(prev => prev.map(f =>
+              f.id === filmId
+                ? { ...f, developProgress: progress }
+                : f
+            ));
+          }
         }, 80); // 更长的间隔
 
       } else {
@@ -360,16 +371,31 @@ function App() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
+    // 如果胶片还在相机内（弹出/生成/显影中），需要计算它相对于画板的实际位置
+    let initialX = film.position.x;
+    let initialY = film.position.y;
+
+    if (film.isEjecting || film.isGenerating || film.isDeveloping) {
+      // 获取胶片元素当前的屏幕位置
+      const filmElement = (e.target as HTMLElement).closest('.ejecting-film');
+      if (filmElement && canvasRef.current) {
+        const filmRect = filmElement.getBoundingClientRect();
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        initialX = filmRect.left - canvasRect.left;
+        initialY = filmRect.top - canvasRect.top;
+      }
+    }
+
     dragRef.current = {
       id: filmId,
       startX: clientX,
       startY: clientY,
-      offsetX: film.position.x,
-      offsetY: film.position.y,
+      offsetX: initialX,
+      offsetY: initialY,
     };
 
     setFilms(prev => prev.map(f =>
-      f.id === filmId ? { ...f, isDragging: true } : f
+      f.id === filmId ? { ...f, isDragging: true, position: { x: initialX, y: initialY } } : f
     ));
   };
 
@@ -607,11 +633,11 @@ function App() {
         {/* 相机 */}
         <div className="camera-section">
           <div className="camera-wrapper">
-            {/* 正在弹出的胶片（在相机图片下方，从顶部升起） */}
-            {films.filter(f => f.isEjecting || f.isGenerating || f.isDeveloping).map((film) => (
+            {/* 正在弹出的胶片（在相机图片下方，从顶部升起）- 只显示未拖拽的 */}
+            {films.filter(f => (f.isEjecting || f.isGenerating || f.isDeveloping) && !f.isDragging).map((film) => (
               <div
                 key={film.id}
-                className={`ejecting-film ${film.isDragging ? 'dragging' : ''}`}
+                className="ejecting-film"
                 style={{
                   transform: `translateY(${100 - film.ejectProgress}%)`,
                 }}
@@ -673,6 +699,37 @@ function App() {
           </div>
         </div>
 
+        {/* 正在拖拽的胶片（脱离相机，在画板上绝对定位） */}
+        {films.filter(f => f.isDragging).map((film) => (
+          <div
+            key={film.id}
+            className="film-card dragging"
+            style={{
+              left: film.position.x,
+              top: film.position.y,
+            }}
+            onMouseDown={(e) => handleDragStart(e, film.id)}
+            onTouchStart={(e) => handleDragStart(e, film.id)}
+          >
+            <div className="film-image">
+              {/* 结果照片在底层 */}
+              {film.result && (
+                <div className="film-photo">
+                  <img src={film.result} alt="照片" />
+                </div>
+              )}
+              {/* 黑色胶片在上层，逐渐变透明 */}
+              <div
+                className="film-black"
+                style={{ opacity: film.isDeveloping ? 1 - (film.developProgress / 100) : 1 }}
+              ></div>
+            </div>
+            <div className="film-info">
+              <span className="film-dream">{film.dream}</span>
+              <span className="film-date">{film.date}</span>
+            </div>
+          </div>
+        ))}
 
         {/* 画板上的历史照片 */}
         {history.map((item) => (
@@ -701,6 +758,8 @@ function App() {
             </div>
             <button
               className="film-delete"
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 deleteHistoryItem(item.id);

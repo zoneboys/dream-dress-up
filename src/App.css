@@ -173,6 +173,7 @@ body {
   position: relative;
   overflow: hidden;
   background: #111;
+  z-index: 1;
 }
 
 .film-black {
@@ -271,7 +272,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 5;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 .film-card:hover .film-delete {
@@ -540,11 +542,11 @@ body {
 /* 摄像头视频容器 - 定位在透明镜头位置 */
 .camera-video-container {
   position: absolute;
-  top: 10%;
-  left: 50%;
+  top: 16%;
+  left: 48%;
   transform: translateX(-50%);
-  width: 50%;
-  height: 50%;
+  width: 36%;
+  height: 36%;
   overflow: hidden;
   z-index: 3;
   background: #1a1a1a;

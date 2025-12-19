@@ -69,75 +69,75 @@ body {
 /* 相机主体 */
 .camera-body {
   position: relative;
-  width: 320px;
-  height: 380px;
+  width: 420px;
+  height: 480px;
   background: linear-gradient(145deg, #f5f0e6 0%, #e8dcc8 100%);
-  border-radius: 30px;
+  border-radius: 40px;
   box-shadow:
-    0 20px 60px rgba(0,0,0,0.3),
-    inset 0 2px 0 rgba(255,255,255,0.5),
-    inset 0 -2px 0 rgba(0,0,0,0.1);
+    0 30px 80px rgba(0,0,0,0.35),
+    inset 0 3px 0 rgba(255,255,255,0.5),
+    inset 0 -3px 0 rgba(0,0,0,0.1);
   flex-shrink: 0;
 }
 
 /* 闪光灯 */
 .camera-flash {
   position: absolute;
-  top: 25px;
-  left: 30px;
-  width: 50px;
-  height: 40px;
+  top: 30px;
+  left: 35px;
+  width: 70px;
+  height: 55px;
   background: linear-gradient(145deg, #888 0%, #555 100%);
-  border-radius: 5px;
+  border-radius: 6px;
   box-shadow:
-    inset 0 2px 4px rgba(255,255,255,0.3),
-    inset 0 -2px 4px rgba(0,0,0,0.3);
+    inset 0 3px 6px rgba(255,255,255,0.3),
+    inset 0 -3px 6px rgba(0,0,0,0.3);
 }
 
 .camera-flash::after {
   content: '';
   position: absolute;
-  top: 5px;
-  left: 5px;
-  right: 5px;
-  bottom: 5px;
-  background: linear-gradient(145deg, #aaa 0%, #666 100%);
-  border-radius: 3px;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  background: linear-gradient(145deg, #bbb 0%, #777 100%);
+  border-radius: 4px;
 }
 
 /* 取景器 */
 .camera-viewfinder {
   position: absolute;
-  top: 30px;
-  left: 95px;
-  width: 30px;
-  height: 25px;
+  top: 38px;
+  left: 125px;
+  width: 40px;
+  height: 35px;
   background: #222;
-  border-radius: 4px;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+  border-radius: 5px;
+  box-shadow: inset 0 3px 6px rgba(0,0,0,0.5);
 }
 
 /* 小镜头 */
 .camera-small-lens {
   position: absolute;
-  top: 32px;
-  right: 80px;
-  width: 20px;
-  height: 20px;
+  top: 40px;
+  right: 100px;
+  width: 28px;
+  height: 28px;
   background: radial-gradient(circle at 30% 30%, #555, #222);
   border-radius: 50%;
   box-shadow:
-    0 2px 4px rgba(0,0,0,0.3),
-    inset 0 1px 2px rgba(255,255,255,0.2);
+    0 3px 6px rgba(0,0,0,0.3),
+    inset 0 2px 3px rgba(255,255,255,0.2);
 }
 
 .camera-small-lens::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 6px;
-  height: 6px;
+  top: 4px;
+  left: 4px;
+  width: 8px;
+  height: 8px;
   background: radial-gradient(circle, rgba(255,255,255,0.8), transparent);
   border-radius: 50%;
 }
@@ -145,33 +145,33 @@ body {
 /* 主镜头外圈 */
 .camera-lens-outer {
   position: absolute;
-  top: 90px;
+  top: 110px;
   left: 50%;
   transform: translateX(-50%);
-  width: 200px;
-  height: 200px;
+  width: 280px;
+  height: 280px;
   background: linear-gradient(145deg, #f8e8e0 0%, #e0c8b8 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 8px 20px rgba(0,0,0,0.2),
-    inset 0 2px 4px rgba(255,255,255,0.5),
-    inset 0 -2px 4px rgba(0,0,0,0.1);
+    0 10px 30px rgba(0,0,0,0.2),
+    inset 0 3px 6px rgba(255,255,255,0.5),
+    inset 0 -3px 6px rgba(0,0,0,0.1);
 }
 
 /* 主镜头内圈 */
 .camera-lens-inner {
-  width: 160px;
-  height: 160px;
+  width: 230px;
+  height: 230px;
   background: linear-gradient(145deg, #444 0%, #222 100%);
   border-radius: 50%;
   overflow: hidden;
   position: relative;
   box-shadow:
-    inset 0 4px 20px rgba(0,0,0,0.8),
-    0 2px 4px rgba(0,0,0,0.3);
+    inset 0 6px 30px rgba(0,0,0,0.8),
+    0 3px 6px rgba(0,0,0,0.3);
 }
 
 /* 镜头内的视频 */
@@ -198,10 +198,10 @@ body {
 /* 快门按钮 */
 .camera-shutter {
   position: absolute;
-  bottom: 40px;
-  left: 40px;
-  width: 60px;
-  height: 60px;
+  bottom: 45px;
+  left: 50px;
+  width: 75px;
+  height: 75px;
   background: linear-gradient(145deg, #d4a574 0%, #b8956a 100%);
   border: none;
   border-radius: 50%;
@@ -210,8 +210,8 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 4px 10px rgba(0,0,0,0.3),
-    inset 0 2px 4px rgba(255,255,255,0.3);
+    0 6px 15px rgba(0,0,0,0.3),
+    inset 0 3px 6px rgba(255,255,255,0.3);
   transition: all 0.1s ease;
 }
 
@@ -222,33 +222,33 @@ body {
 .camera-shutter:active {
   transform: scale(0.95);
   box-shadow:
-    0 2px 5px rgba(0,0,0,0.3),
-    inset 0 2px 4px rgba(0,0,0,0.2);
+    0 3px 8px rgba(0,0,0,0.3),
+    inset 0 3px 6px rgba(0,0,0,0.2);
 }
 
 .shutter-inner {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   background: linear-gradient(145deg, #c49868 0%, #a8855c 100%);
   border-radius: 50%;
-  border: 3px solid rgba(255,255,255,0.3);
+  border: 4px solid rgba(255,255,255,0.3);
 }
 
 /* 上传按钮 */
 .camera-upload {
   position: absolute;
-  bottom: 45px;
-  right: 40px;
-  width: 50px;
-  height: 50px;
+  bottom: 50px;
+  right: 50px;
+  width: 60px;
+  height: 60px;
   background: linear-gradient(145deg, #888 0%, #666 100%);
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 24px;
   box-shadow:
-    0 4px 10px rgba(0,0,0,0.3),
-    inset 0 2px 4px rgba(255,255,255,0.2);
+    0 6px 15px rgba(0,0,0,0.3),
+    inset 0 3px 6px rgba(255,255,255,0.2);
   transition: all 0.1s ease;
 }
 
@@ -925,38 +925,60 @@ body {
 
 @media (max-width: 600px) {
   .camera-body {
-    width: 280px;
-    height: 340px;
+    width: 320px;
+    height: 380px;
+  }
+
+  .camera-flash {
+    width: 55px;
+    height: 45px;
+    top: 25px;
+    left: 30px;
+  }
+
+  .camera-viewfinder {
+    top: 32px;
+    left: 100px;
+    width: 32px;
+    height: 28px;
+  }
+
+  .camera-small-lens {
+    top: 34px;
+    right: 80px;
+    width: 22px;
+    height: 22px;
   }
 
   .camera-lens-outer {
+    top: 90px;
+    width: 210px;
+    height: 210px;
+  }
+
+  .camera-lens-inner {
     width: 170px;
     height: 170px;
   }
 
-  .camera-lens-inner {
-    width: 140px;
-    height: 140px;
-  }
-
   .camera-shutter {
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     bottom: 35px;
-    left: 35px;
+    left: 40px;
   }
 
   .shutter-inner {
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
   }
 
   .camera-upload {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     bottom: 40px;
-    right: 35px;
-    font-size: 16px;
+    right: 40px;
+    font-size: 18px;
   }
 
   .polaroid {

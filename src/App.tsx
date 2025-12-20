@@ -47,6 +47,10 @@ function App() {
   const [editName, setEditName] = useState('');
   const [editDream, setEditDream] = useState('');
 
+  // 正在进入相机的照片（上传动画）
+  const [enteringPhoto, setEnteringPhoto] = useState<string | null>(null);
+  const [enteringProgress, setEnteringProgress] = useState(0);
+
   // 画板上的胶片/照片列表（生成中的）
   const [films, setFilms] = useState<FilmPhoto[]>([]);
 
@@ -185,7 +189,7 @@ function App() {
   // 上传照片
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || capturedPhoto) return;
+    if (!file || capturedPhoto || enteringPhoto) return;
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -204,15 +208,33 @@ function App() {
         ctx.drawImage(img, offsetX, offsetY, size, size, 0, 0, 640, 640);
 
         const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        setCapturedPhoto(dataUrl);
-        setEditName('');
-        setEditDream('');
+
+        // 开始进入动画
+        setEnteringPhoto(dataUrl);
+        setEnteringProgress(0);
+
+        // 照片进入相机的动画
+        let progress = 0;
+        const enterInterval = setInterval(() => {
+          progress += 2;
+          setEnteringProgress(progress);
+
+          if (progress >= 100) {
+            clearInterval(enterInterval);
+            // 动画完成，打开编辑弹窗
+            setEnteringPhoto(null);
+            setEnteringProgress(0);
+            setCapturedPhoto(dataUrl);
+            setEditName('');
+            setEditDream('');
+          }
+        }, 20);
       };
       img.src = reader.result as string;
     };
     reader.readAsDataURL(file);
     e.target.value = '';
-  }, [capturedPhoto]);
+  }, [capturedPhoto, enteringPhoto]);
 
   // 确认并开始生成 - 弹出黑色胶片
   const handleConfirmAndGenerate = async () => {
@@ -691,13 +713,28 @@ function App() {
               title="拍照"
             />
 
-            {/* 上传按钮 - 底部出口位置，透明热区 */}
+            {/* 上传按钮 - 底部出口位置，带箭头图标 */}
             <button
               className="camera-upload"
               onClick={() => fileInputRef.current?.click()}
-              disabled={!!capturedPhoto}
+              disabled={!!capturedPhoto || !!enteringPhoto}
               title="上传照片"
-            />
+            >
+              <span className="upload-arrow">↑</span>
+            </button>
+
+            {/* 正在进入相机的照片 */}
+            {enteringPhoto && (
+              <div
+                className="entering-photo"
+                style={{
+                  transform: `translateY(${-enteringProgress}%)`,
+                  clipPath: `inset(${enteringProgress}% 0 0 0)`,
+                }}
+              >
+                <img src={enteringPhoto} alt="上传的照片" />
+              </div>
+            )}
           </div>
         </div>
 

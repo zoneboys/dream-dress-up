@@ -629,8 +629,50 @@ body {
   z-index: 10;
 }
 
+.camera-upload:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .camera-upload:disabled {
   cursor: not-allowed;
+}
+
+/* 上传按钮箭头图标 */
+.upload-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 18px;
+  font-weight: bold;
+  color: #666;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.camera-upload:hover:not(:disabled) .upload-arrow {
+  opacity: 1;
+}
+
+/* 正在进入相机的照片 */
+.entering-photo {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.entering-photo img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* 正在弹出的胶片（从相机顶部升起） */

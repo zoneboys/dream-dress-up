@@ -233,14 +233,16 @@ function App() {
 
           if (progress >= 100) {
             clearInterval(enterInterval);
-            // 触发闪光效果
-            triggerFlash();
-            // 动画完成，打开编辑弹窗
+            // 动画完成，先清除动画状态
             setEnteringPhoto(null);
             setEnteringProgress(0);
-            setCapturedPhoto(dataUrl);
-            setEditName('');
-            setEditDream('');
+            // 延迟一点再触发闪光和显示照片，确保动画视觉上完全消失
+            setTimeout(() => {
+              triggerFlash();
+              setCapturedPhoto(dataUrl);
+              setEditName('');
+              setEditDream('');
+            }, 100);
           }
         }, 20);
       };

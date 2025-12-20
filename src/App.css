@@ -297,35 +297,37 @@ body {
 /* 左侧表单 - 从相机左侧延伸 */
 .side-form {
   position: absolute;
-  right: 100%;
+  right: 90%;
   top: 50%;
   transform: translateY(-50%);
   width: 0;
   overflow: hidden;
   transition: width 0.4s ease;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .side-form.visible {
-  width: 220px;
+  width: 215px;
 }
 
 .side-form-content {
   width: 200px;
-  padding: 15px;
+  flex-shrink: 0;
+  padding: 10px;
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 10px 0 0 10px;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-right: 15px;
+  gap: 6px;
 }
 
 .side-form .input-name {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
 }
 
@@ -334,10 +336,10 @@ body {
 }
 
 .side-form .input-dream {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   resize: none;
   outline: none;
   font-family: inherit;
@@ -699,8 +701,8 @@ body {
 /* ===== 拍立得相机（使用图片）===== */
 .camera-wrapper {
   position: relative;
-  width: 350px;
-  height: 350px;
+  width: 450px;
+  height: 450px;
   flex-shrink: 0;
 }
 
@@ -816,7 +818,7 @@ body {
 /* 上传按钮 - 底部彩虹出口位置 */
 .camera-upload {
   position: absolute;
-  bottom: 10%;
+  bottom: 13%;
   left: 50%;
   transform: translateX(-50%);
   width: 50px;
@@ -856,7 +858,7 @@ body {
 /* 照片进入相机的容器（彩虹出口位置） */
 .entering-photo-container {
   position: absolute;
-  bottom: -17%;
+  bottom: -8%;
   left: 50%;
   transform: translateX(-50%);
   width: 120px;

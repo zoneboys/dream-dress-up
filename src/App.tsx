@@ -725,14 +725,15 @@ function App() {
 
             {/* 正在进入相机的照片 */}
             {enteringPhoto && (
-              <div
-                className="entering-photo"
-                style={{
-                  transform: `translateY(${-enteringProgress}%)`,
-                  clipPath: `inset(${enteringProgress}% 0 0 0)`,
-                }}
-              >
-                <img src={enteringPhoto} alt="上传的照片" />
+              <div className="entering-photo-container">
+                <div
+                  className="entering-photo"
+                  style={{
+                    transform: `translateY(${-enteringProgress}%)`,
+                  }}
+                >
+                  <img src={enteringPhoto} alt="上传的照片" />
+                </div>
               </div>
             )}
           </div>
@@ -872,61 +873,60 @@ function App() {
         </div>
       )}
 
-      {/* 历史记录画廊 */}
+      {/* 历史记录画廊 - 软木板风格 */}
       {showHistory && (
-        <div className="gallery-overlay" onClick={() => setShowHistory(false)}>
-          <div className="gallery-container" onClick={(e) => e.stopPropagation()}>
+        <div className="gallery-overlay">
+          <div className="gallery-container">
+            {/* 返回按钮 */}
+            <button className="gallery-back" onClick={() => setShowHistory(false)}>
+              ← Back to Camera
+            </button>
+
+            {/* 标题区域 */}
             <div className="gallery-header">
-              <h2>📚 梦想画廊</h2>
-              <button className="btn-close" onClick={() => setShowHistory(false)}>✕</button>
+              <div className="gallery-pin">📌</div>
+              <h2>Public Pinboard Gallery</h2>
+              <p className="gallery-subtitle">Shared memories from the Retro Camera community</p>
             </div>
+
+            <div className="gallery-divider"></div>
+
             {history.length === 0 ? (
               <div className="gallery-empty">
                 <span>🖼️</span>
                 <p>还没有记录哦，快去拍照吧！</p>
               </div>
             ) : (
-              <div className="gallery-grouped">
-                {Object.entries(
-                  history.reduce((groups, item) => {
-                    const name = item.name || '未命名';
-                    if (!groups[name]) {
-                      groups[name] = [];
-                    }
-                    groups[name].push(item);
-                    return groups;
-                  }, {} as Record<string, HistoryItem[]>)
-                ).map(([name, items]) => (
-                  <div key={name} className="gallery-group">
-                    <div className="gallery-group-header">
-                      <span className="gallery-group-name">{name}</span>
-                      <span className="gallery-group-count">{items.length} 张</span>
+              <div className="gallery-grid">
+                {history.map((item, index) => {
+                  // 随机旋转角度
+                  const rotation = (index % 5 - 2) * 3;
+                  return (
+                    <div
+                      key={item.id}
+                      className="gallery-polaroid"
+                      style={{ '--rotation': `${rotation}deg` } as React.CSSProperties}
+                      onClick={() => setSelectedHistoryItem(item)}
+                    >
+                      <div className="gallery-polaroid-image">
+                        <img src={item.resultPhoto} alt={item.name} />
+                      </div>
+                      <div className="gallery-polaroid-info">
+                        <span className="gallery-polaroid-dream">{item.dream}</span>
+                        <span className="gallery-polaroid-date">{new Date(item.timestamp).toLocaleDateString()}</span>
+                      </div>
+                      <button
+                        className="gallery-polaroid-delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteHistoryItem(item.id);
+                        }}
+                      >
+                        ✕
+                      </button>
                     </div>
-                    <div className="gallery-group-grid">
-                      {items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="gallery-item"
-                          onClick={() => setSelectedHistoryItem(item)}
-                        >
-                          <img src={item.resultPhoto} alt={item.name} />
-                          <div className="gallery-item-dream">
-                            <span>{item.dream}</span>
-                          </div>
-                          <button
-                            className="gallery-item-delete"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteHistoryItem(item.id);
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

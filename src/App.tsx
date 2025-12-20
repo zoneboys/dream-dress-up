@@ -51,6 +51,9 @@ function App() {
   const [enteringPhoto, setEnteringPhoto] = useState<string | null>(null);
   const [enteringProgress, setEnteringProgress] = useState(0);
 
+  // 闪光灯效果
+  const [showFlash, setShowFlash] = useState(false);
+
   // 画板上的胶片/照片列表（生成中的）
   const [films, setFilms] = useState<FilmPhoto[]>([]);
 
@@ -161,9 +164,18 @@ function App() {
     };
   }, [startCamera]);
 
+  // 触发闪光效果
+  const triggerFlash = useCallback(() => {
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 150);
+  }, []);
+
   // 拍照 - 只捕获照片，弹窗确认
   const takePhoto = useCallback(() => {
     if (!videoRef.current || capturedPhoto) return;
+
+    // 触发闪光效果
+    triggerFlash();
 
     const canvas = document.createElement('canvas');
     const video = videoRef.current;
@@ -184,7 +196,7 @@ function App() {
     setCapturedPhoto(dataUrl);
     setEditName('');
     setEditDream('');
-  }, [capturedPhoto]);
+  }, [capturedPhoto, triggerFlash]);
 
   // 上传照片
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -221,6 +233,8 @@ function App() {
 
           if (progress >= 100) {
             clearInterval(enterInterval);
+            // 触发闪光效果
+            triggerFlash();
             // 动画完成，打开编辑弹窗
             setEnteringPhoto(null);
             setEnteringProgress(0);
@@ -234,7 +248,7 @@ function App() {
     };
     reader.readAsDataURL(file);
     e.target.value = '';
-  }, [capturedPhoto, enteringPhoto]);
+  }, [capturedPhoto, enteringPhoto, triggerFlash]);
 
   // 确认并开始生成 - 弹出黑色胶片
   const handleConfirmAndGenerate = async () => {
@@ -654,56 +668,61 @@ function App() {
 
       {/* 主区域 - 画板背景 */}
       <main className="canvas-area" ref={canvasRef}>
-        {/* 相机 */}
+        {/* 相机区域（包含左侧表单、相机、右侧结果） */}
         <div className="camera-section">
           <div className="camera-wrapper">
-            {/* 正在弹出的胶片（在相机图片下方，从顶部升起）- 只显示未拖拽的 */}
-            {films.filter(f => (f.isEjecting || f.isGenerating || f.isDeveloping) && !f.isDragging).map((film) => (
-              <div
-                key={film.id}
-                className="ejecting-film"
-                style={{
-                  transform: `translateY(${100 - film.ejectProgress}%)`,
-                }}
-                onMouseDown={(e) => handleDragStart(e, film.id)}
-                onTouchStart={(e) => handleDragStart(e, film.id)}
-              >
-                <div className="film-image">
-                  {/* 结果照片在底层 */}
-                  {film.result && (
-                    <div className="film-photo">
-                      <img src={film.result} alt="照片" />
-                    </div>
-                  )}
-                  {/* 黑色胶片在上层：没有结果时全黑，有结果后逐渐透明 */}
-                  <div
-                    className="film-black"
-                    style={{ opacity: !film.result ? 1 : 1 - (film.developProgress / 100) }}
-                  ></div>
-                </div>
-                <div className="film-info">
-                  <span className="film-dream">{film.dream}</span>
-                  <span className="film-date">{film.date}</span>
+            {/* 左侧表单 - 拍照后从相机左侧延伸 */}
+            <div className={`side-form ${capturedPhoto ? 'visible' : ''}`}>
+              <div className="side-form-content">
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="输入姓名（可选）"
+                  className="input-name"
+                />
+                <textarea
+                  value={editDream}
+                  onChange={(e) => setEditDream(e.target.value)}
+                  placeholder="输入你的梦想..."
+                  className="input-dream"
+                  rows={3}
+                />
+                <div className="side-form-actions">
+                  <button className="btn-cancel" onClick={cancelCapture}>取消</button>
+                  <button
+                    className="btn-primary"
+                    onClick={handleConfirmAndGenerate}
+                    disabled={!editDream.trim()}
+                  >
+                    生成 ✨
+                  </button>
                 </div>
               </div>
-            ))}
+            </div>
 
-            {/* 摄像头视频（在相机图片下方，透过镜头显示） */}
+            {/* 摄像头视频或拍摄的照片（在相机镜头处显示） */}
             <div className="camera-video-container">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="camera-video"
-              />
-              {!cameraReady && (
-                <div className="camera-placeholder">📷</div>
+              {capturedPhoto ? (
+                <img src={capturedPhoto} alt="拍摄的照片" className="captured-preview" />
+              ) : (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="camera-video"
+                  />
+                  {!cameraReady && (
+                    <div className="camera-placeholder">📷</div>
+                  )}
+                </>
               )}
             </div>
 
             {/* 相机图片 */}
-            <img src="/camera.png" alt="相机" className="camera-image" />
+            <img src="/c.png" alt="相机" className="camera-image" />
 
             {/* 拍照按钮 - 右上角，模拟快门 */}
             <button
@@ -736,6 +755,40 @@ function App() {
                 </div>
               </div>
             )}
+
+            {/* 闪光效果 */}
+            {showFlash && <div className="camera-flash" />}
+          </div>
+
+          {/* 右侧 - 生成的照片从这里滑出 */}
+          <div className="side-result">
+            {films.filter(f => (f.isEjecting || f.isGenerating || f.isDeveloping) && !f.isDragging).map((film) => (
+              <div
+                key={film.id}
+                className={`side-result-film ${film.ejectProgress >= 100 ? 'visible' : ''}`}
+                style={{
+                  transform: `translateX(${film.ejectProgress - 100}%)`,
+                }}
+                onMouseDown={(e) => handleDragStart(e, film.id)}
+                onTouchStart={(e) => handleDragStart(e, film.id)}
+              >
+                <div className="film-image">
+                  {film.result && (
+                    <div className="film-photo">
+                      <img src={film.result} alt="照片" />
+                    </div>
+                  )}
+                  <div
+                    className="film-black"
+                    style={{ opacity: !film.result ? 1 : 1 - (film.developProgress / 100) }}
+                  ></div>
+                </div>
+                <div className="film-info">
+                  <span className="film-dream">{film.dream}</span>
+                  <span className="film-date">{film.date}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -834,44 +887,6 @@ function App() {
         </div>
       )}
 
-      {/* 拍照确认弹窗 */}
-      {capturedPhoto && (
-        <div className="polaroid-modal" onClick={cancelCapture}>
-          <div className="polaroid-modal-content" onClick={e => e.stopPropagation()}>
-            <button className="btn-close" onClick={cancelCapture}>✕</button>
-
-            <div className="polaroid-preview">
-              <img src={capturedPhoto} alt="照片" />
-            </div>
-
-            <div className="polaroid-form">
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="输入姓名（可选）"
-                className="input-name"
-              />
-              <textarea
-                value={editDream}
-                onChange={(e) => setEditDream(e.target.value)}
-                placeholder="输入你的梦想..."
-                className="input-dream"
-                rows={2}
-              />
-              <div className="polaroid-actions">
-                <button
-                  className="btn-primary"
-                  onClick={handleConfirmAndGenerate}
-                  disabled={!editDream.trim()}
-                >
-                  确认并生成 ✨
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 历史记录画廊 - 软木板风格 */}
       {showHistory && (

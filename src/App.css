@@ -284,7 +284,7 @@ body {
   background: #ef4444;
 }
 
-/* 左侧相机区域 */
+/* 相机区域 */
 .camera-section {
   flex: 0 0 auto;
   display: flex;
@@ -292,6 +292,183 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
+}
+
+/* 左侧表单 - 从相机左侧延伸 */
+.side-form {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  overflow: hidden;
+  transition: width 0.4s ease;
+}
+
+.side-form.visible {
+  width: 220px;
+}
+
+.side-form-content {
+  width: 200px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-right: 15px;
+}
+
+.side-form .input-name {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.side-form .input-name:focus {
+  border-color: #667eea;
+}
+
+.side-form .input-dream {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
+
+.side-form .input-dream:focus {
+  border-color: #667eea;
+}
+
+.side-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.side-form-actions .btn-cancel {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.side-form-actions .btn-cancel:hover {
+  background: #f5f5f5;
+}
+
+.side-form-actions .btn-primary {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+.side-form-actions .btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.side-form-actions .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 镜头中显示的拍摄照片 */
+.captured-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 右侧结果区域 */
+.side-result {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  overflow: visible;
+}
+
+.side-result-film {
+  position: absolute;
+  left: 20px;
+  top: -100px;
+  width: 160px;
+  background: white;
+  padding: 10px 10px 40px 10px;
+  border-radius: 4px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: transform 0.5s ease;
+  cursor: grab;
+}
+
+.side-result-film .film-image {
+  width: 100%;
+  aspect-ratio: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #1a1a1a;
+}
+
+.side-result-film .film-photo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.side-result-film .film-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.side-result-film .film-black {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #1a1a1a;
+  transition: opacity 2s ease;
+}
+
+.side-result-film .film-info {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-result-film .film-dream {
+  font-size: 12px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side-result-film .film-date {
+  font-size: 10px;
+  color: #999;
 }
 
 /* 弹出的照片 */
@@ -539,14 +716,39 @@ body {
   pointer-events: none;
 }
 
+/* 闪光效果 */
+.camera-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: white;
+  z-index: 9999;
+  animation: flash-effect 0.2s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes flash-effect {
+  0% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* 摄像头视频容器 - 定位在透明镜头位置 */
 .camera-video-container {
   position: absolute;
-  top: 16%;
-  left: 48%;
+  top: 35%;
+  left: 50%;
   transform: translateX(-50%);
-  width: 36%;
-  height: 36%;
+  width: 38%;
+  height: 38%;
   overflow: hidden;
   z-index: 3;
   background: #1a1a1a;
@@ -573,22 +775,22 @@ body {
   font-size: 32px;
 }
 
-/* 拍照按钮 - 相机顶部左上角，像真正的快门 */
+/* 拍照按钮 - 圆形快门 */
 .camera-shutter {
   position: absolute;
-  top: 8%;
-  left: 12%;
-  width: 32px;
-  height: 14px;
-  background: linear-gradient(180deg, #e85050 0%, #c43c3c 100%);
+  top: 23.5%;
+  left: 60%;
+  width: 25px;
+  height: 25px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
   border: none;
-  border-radius: 6px;
+  box-sizing: border-box;
+  border-radius: 50%;
   cursor: pointer;
   z-index: 10;
-  box-shadow:
-    0 3px 8px rgba(0,0,0,0.3),
-    inset 0 2px 3px rgba(255,255,255,0.3),
-    inset 0 -2px 3px rgba(0,0,0,0.2);
+  box-shadow: none;
   transition: all 0.1s ease;
 }
 
@@ -597,17 +799,13 @@ body {
 }
 
 .camera-shutter:hover:not(:disabled) {
-  background: linear-gradient(180deg, #f06060 0%, #d44545 100%);
-  box-shadow:
-    0 4px 10px rgba(0,0,0,0.4),
-    inset 0 2px 3px rgba(255,255,255,0.3);
+  background: transparent;
+  box-shadow: none;
 }
 
 .camera-shutter:active:not(:disabled) {
-  transform: translateY(2px);
-  box-shadow:
-    0 1px 4px rgba(0,0,0,0.3),
-    inset 0 2px 4px rgba(0,0,0,0.3);
+  background: transparent;
+  box-shadow: none;
 }
 
 .camera-shutter:disabled {
@@ -618,7 +816,7 @@ body {
 /* 上传按钮 - 底部彩虹出口位置 */
 .camera-upload {
   position: absolute;
-  bottom: -5%;
+  bottom: 10%;
   left: 50%;
   transform: translateX(-50%);
   width: 50px;
@@ -658,8 +856,8 @@ body {
 /* 照片进入相机的容器（彩虹出口位置） */
 .entering-photo-container {
   position: absolute;
-  bottom: -25%;
-  left: 48%;
+  bottom: -17%;
+  left: 50%;
   transform: translateX(-50%);
   width: 120px;
   height: 140px;
@@ -1806,15 +2004,6 @@ body {
     height: 280px;
   }
 
-  .camera-shutter {
-    width: 40px;
-    height: 40px;
-  }
-
-  .camera-shutter::after {
-    width: 22px;
-    height: 22px;
-  }
 
   .camera-upload {
     width: 50px;

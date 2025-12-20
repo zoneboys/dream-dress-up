@@ -305,12 +305,36 @@ function App() {
             if (hasAddedToHistory) return;
             hasAddedToHistory = true;
 
-            // 标记显影完成，不再是 isDeveloping 状态
-            setFilms(prev => prev.map(f =>
-              f.id === filmId
-                ? { ...f, isDeveloping: false, developProgress: 100 }
-                : f
-            ));
+            // 显影完成后，保存到历史并移除胶片
+            setFilms(prev => {
+              const completedFilm = prev.find(f => f.id === filmId);
+              if (completedFilm) {
+                // 添加到历史记录
+                const newItem: HistoryItem = {
+                  id: Date.now().toString(),
+                  name: completedFilm.name || '未命名',
+                  dream: completedFilm.dream,
+                  originalPhoto: completedFilm.originalPhoto,
+                  resultPhoto: imageUrl,
+                  timestamp: Date.now(),
+                  position: completedFilm.position,
+                };
+                // 延迟添加到 history，避免状态冲突
+                setTimeout(() => {
+                  setHistory(prevHistory => {
+                    // 检查是否已存在
+                    if (prevHistory.some(h => h.originalPhoto === newItem.originalPhoto && h.dream === newItem.dream)) {
+                      return prevHistory;
+                    }
+                    const newHistory = [newItem, ...prevHistory].slice(0, 50);
+                    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+                    return newHistory;
+                  });
+                }, 50);
+              }
+              // 移除已完成的胶片
+              return prev.filter(f => f.id !== filmId);
+            });
           } else {
             // 更新显影进度
             setFilms(prev => prev.map(f =>
@@ -677,20 +701,15 @@ function App() {
           </div>
         </div>
 
-        {/* 画板上的胶片（拖拽中的 或 已完成显影的） */}
-        {films.filter(f => f.isDragging || (!f.isEjecting && !f.isGenerating && !f.isDeveloping)).map((film) => {
-          // 计算黑胶透明度：
-          // - 没有结果时（生成中）：全黑 (1)
-          // - 有结果且在显影中：逐渐透明
-          // - 显影完成：完全透明 (0)
-          const blackOpacity = !film.result
-            ? 1
-            : (film.developProgress >= 100 ? 0 : 1 - (film.developProgress / 100));
+        {/* 画板上拖拽中的胶片 */}
+        {films.filter(f => f.isDragging).map((film) => {
+          // 计算黑胶透明度：没有结果时全黑，有结果后逐渐透明
+          const blackOpacity = !film.result ? 1 : 1 - (film.developProgress / 100);
 
           return (
             <div
               key={film.id}
-              className={`film-card ${film.isDragging ? 'dragging' : ''} ${film.developProgress >= 100 ? 'completed' : ''}`}
+              className="film-card dragging"
               style={{
                 left: film.position.x,
                 top: film.position.y,
@@ -717,34 +736,6 @@ function App() {
                 <span className="film-dream">{film.dream}</span>
                 <span className="film-date">{film.date}</span>
               </div>
-              <button
-                className="film-delete"
-                onMouseDown={(e) => e.stopPropagation()}
-                onTouchStart={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // 如果已完成，保存到历史再删除
-                  if (film.developProgress >= 100 && film.result) {
-                    const newItem: HistoryItem = {
-                      id: Date.now().toString(),
-                      name: film.name || '未命名',
-                      dream: film.dream,
-                      originalPhoto: film.originalPhoto,
-                      resultPhoto: film.result,
-                      timestamp: Date.now(),
-                      position: film.position,
-                    };
-                    setHistory(prev => {
-                      const newHistory = [newItem, ...prev].slice(0, 50);
-                      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
-                      return newHistory;
-                    });
-                  }
-                  deleteFilm(film.id);
-                }}
-              >
-                ✕
-              </button>
             </div>
           );
         })}

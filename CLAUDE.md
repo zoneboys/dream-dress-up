@@ -64,7 +64,7 @@ src/
 ### 音效系统
 
 - 默认使用 Web Audio API 合成音效，支持自定义音频文件替换
-- 音效类型：快门、上传、开关摄像头、确认、完成、错误、胶片弹出、显影、点击
+- 音效类型：快门、上传、开关摄像头、模板切换、确认、完成、错误、胶片弹出、显影、点击
 - 支持按类别控制开关：快门、相机、操作、反馈、动画、界面音效
 - 默认仅开启：快门、相机、动画音效
 - 设置持久化到 localStorage（key: `dream-dress-sound-settings`）
@@ -72,10 +72,19 @@ src/
 
 **自定义音效**：将音频文件放到 `public/sounds/` 目录，文件名对应音效类型：
 ```
-shutter.mp3, upload.mp3, cameraOn.mp3, cameraOff.mp3, confirm.mp3,
-complete.mp3, error.mp3, eject.mp3, developing.mp3, click.mp3
+shutter.mp3, upload.mp3, cameraOn.mp3, cameraOff.mp3, modeSwitch.mp3,
+confirm.mp3, complete.mp3, error.mp3, eject.mp3, developing.mp3, click.mp3
 ```
 支持格式：mp3、wav、ogg。有自定义文件时优先使用，否则用合成音效。
+
+### 模板快速切换
+
+- **点击** 相机左上角 Logo 区域：循环切换到下一个风格模板
+- **长按**（500ms）：打开设置面板并自动滚动到模板区域
+- 切换时显示 LCD 复古风格提示：`✨ 2/5 吉卜力风格`（序号/总数 + 模板名）
+- 提示 2.5 秒后自动消失
+- 切换会播放机械转盘音效（modeSwitch）
+- 位置样式：`.camera-logo-btn`（App.css）、`.template-toast`（App.css）
 
 ### 分享功能
 

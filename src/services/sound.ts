@@ -12,6 +12,7 @@
 //   - eject.mp3      胶片弹出
 //   - developing.mp3 显影进行中（循环播放）
 //   - click.mp3      统一点击音
+//   - modeSwitch.mp3 模式/模板切换（机械转盘声）
 // 支持格式：mp3, wav, ogg
 
 // 音效类型
@@ -25,7 +26,8 @@ export type SoundType =
   | 'error'        // 生成失败
   | 'eject'        // 胶片弹出
   | 'developing'   // 显影进行中
-  | 'click';       // 统一点击音
+  | 'click'        // 统一点击音
+  | 'modeSwitch';  // 模式/模板切换
 
 // 音效类别
 export type SoundCategory =
@@ -41,6 +43,7 @@ const soundToCategory: Record<SoundType, SoundCategory> = {
   shutter: 'shutter',
   cameraOn: 'camera',
   cameraOff: 'camera',
+  modeSwitch: 'camera',  // 模板切换也属于相机操作
   upload: 'operation',
   confirm: 'operation',
   complete: 'feedback',
@@ -63,7 +66,7 @@ export const categoryNames: Record<SoundCategory, string> = {
 // 类别描述
 export const categoryDescriptions: Record<SoundCategory, string> = {
   shutter: '拍照',
-  camera: '开启/关闭摄像头',
+  camera: '开启/关闭摄像头、模板切换',
   operation: '上传、确认生成',
   feedback: '生成完成、错误提示',
   animation: '胶片弹出、显影',
@@ -202,7 +205,7 @@ let preloadComplete = false;
 // 所有音效类型列表
 const allSoundTypes: SoundType[] = [
   'shutter', 'upload', 'cameraOn', 'cameraOff', 'confirm',
-  'complete', 'error', 'eject', 'developing', 'click'
+  'complete', 'error', 'eject', 'developing', 'click', 'modeSwitch'
 ];
 
 // 尝试加载单个音频文件
@@ -411,6 +414,55 @@ function playEject() {
   }
 }
 
+// 播放模式切换音效（机械转盘咔嗒声）
+function playModeSwitch() {
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') ctx.resume();
+
+    // 第一个咔嗒声 - 短促的高频脉冲
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    const filter1 = ctx.createBiquadFilter();
+
+    filter1.type = 'bandpass';
+    filter1.frequency.value = 2500;
+    filter1.Q.value = 5;
+
+    osc1.connect(filter1);
+    filter1.connect(gain1);
+    gain1.connect(ctx.destination);
+
+    osc1.frequency.setValueAtTime(1200, ctx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.03);
+    osc1.type = 'square';
+
+    gain1.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.05);
+
+    // 第二个咔嗒声 - 稍低一点，模拟档位到位
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+
+    osc2.frequency.setValueAtTime(600, ctx.currentTime + 0.04);
+    osc2.type = 'triangle';
+
+    gain2.gain.setValueAtTime(0.2, ctx.currentTime + 0.04);
+    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+
+    osc2.start(ctx.currentTime + 0.04);
+    osc2.stop(ctx.currentTime + 0.1);
+  } catch (e) {
+    console.warn('播放模式切换音效失败:', e);
+  }
+}
+
 // 显影音效控制
 let developingOsc: OscillatorNode | null = null;
 let developingGain: GainNode | null = null;
@@ -507,6 +559,9 @@ export function playSound(type: SoundType) {
       break;
     case 'click':
       playTone(800, 0.03, 'square', 0.1);
+      break;
+    case 'modeSwitch':
+      playModeSwitch();
       break;
     case 'developing':
       // 显影音效通过 startDevelopingSound/stopDevelopingSound 控制

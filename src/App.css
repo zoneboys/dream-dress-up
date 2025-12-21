@@ -2596,6 +2596,90 @@ body {
 .camera-iris.opening .iris-blade:nth-child(5) { --rotation: 240deg; }
 .camera-iris.opening .iris-blade:nth-child(6) { --rotation: 300deg; }
 
+/* Logo 按钮 - 左上角 Leica logo 位置，用于快速切换模板 */
+.camera-logo-btn {
+  position: absolute;
+  top: 23%;
+  left: 32%;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.camera-logo-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+}
+
+.camera-logo-btn:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* 模板切换提示 - LCD 复古数码风格 */
+.template-toast {
+  position: absolute;
+  top: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 2px solid #444;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px #111;
+  z-index: 100;
+  animation: template-toast-in 0.3s ease-out forwards;
+}
+
+@keyframes template-toast-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.template-toast-icon {
+  font-size: 14px;
+}
+
+.template-toast-text {
+  font-family: 'Courier New', 'Monaco', monospace;
+  font-size: 13px;
+  font-weight: bold;
+  color: #7fdb7f;
+  text-shadow: 0 0 8px rgba(127, 219, 127, 0.5);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* 深色模式下的模板提示 */
+@media (prefers-color-scheme: dark) {
+  .template-toast {
+    background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
+    border-color: #333;
+  }
+
+  .template-toast-text {
+    color: #90ee90;
+    text-shadow: 0 0 10px rgba(144, 238, 144, 0.6);
+  }
+}
+
 /* 光圈中心圆形遮罩效果 */
 .camera-iris::after {
   content: '';

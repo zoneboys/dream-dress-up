@@ -98,6 +98,10 @@ function App() {
   // 音效设置状态
   const [soundSettings, setSoundSettings] = useState<SoundSettings>(() => getSoundSettings());
 
+  // 模板切换提示状态
+  const [templateToast, setTemplateToast] = useState<{ name: string; index: number; total: number } | null>(null);
+  const templateSwitchRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; isLongPress: boolean }>({ timer: null, isLongPress: false });
+
   // API设置
   const [showSettings, setShowSettings] = useState(false);
   const [tempApiUrl, setTempApiUrl] = useState('https://api.tu-zi.com/v1');
@@ -172,8 +176,8 @@ function App() {
     initAudio();
   }, []);
 
-  // 启动摄像头
-  const startCamera = useCallback(async () => {
+  // 启动摄像头（保留备用）
+  const _startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
@@ -190,8 +194,8 @@ function App() {
     }
   }, []);
 
-  // 关闭摄像头
-  const stopCamera = useCallback(() => {
+  // 关闭摄像头（保留备用）
+  const _stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -202,6 +206,10 @@ function App() {
     setCameraReady(false);
     setCameraEnabled(false);
   }, []);
+
+  // 抑制未使用变量警告
+  void _startCamera;
+  void _stopCamera;
 
   // 切换摄像头开关
   const toggleCamera = useCallback(async () => {
@@ -275,6 +283,69 @@ function App() {
       playSound('click');
     }
   }, [soundSettings]);
+
+  // 快速切换模板 - 点击 logo 区域循环切换
+  const handleTemplateCycle = useCallback(() => {
+    const currentIndex = templates.findIndex(t => t.id === tempTemplateId);
+    const nextIndex = (currentIndex + 1) % templates.length;
+    const nextTemplate = templates[nextIndex];
+
+    // 更新模板
+    setTempTemplateId(nextTemplate.id);
+    setTempPrompt(nextTemplate.template);
+
+    // 立即保存到设置
+    settingsManager.updateConfig({
+      templateId: nextTemplate.id,
+      customPrompt: nextTemplate.template,
+    } as any);
+
+    // 播放切换音效
+    playSound('modeSwitch');
+
+    // 显示提示
+    setTemplateToast({
+      name: nextTemplate.name,
+      index: nextIndex + 1,
+      total: templates.length,
+    });
+
+    // 2.5秒后隐藏提示
+    setTimeout(() => {
+      setTemplateToast(null);
+    }, 2500);
+  }, [templates, tempTemplateId]);
+
+  // Logo 按钮 - 按下开始
+  const handleLogoPress = useCallback(() => {
+    templateSwitchRef.current.isLongPress = false;
+
+    // 设置长按定时器（500ms）
+    templateSwitchRef.current.timer = setTimeout(() => {
+      templateSwitchRef.current.isLongPress = true;
+      playSound('click');
+      setShowSettings(true);
+      // 滚动到模板区域（延迟执行以等待弹窗渲染）
+      setTimeout(() => {
+        const templateSection = document.querySelector('.template-list');
+        templateSection?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }, 500);
+  }, []);
+
+  // Logo 按钮 - 松开
+  const handleLogoRelease = useCallback(() => {
+    // 清除长按定时器
+    if (templateSwitchRef.current.timer) {
+      clearTimeout(templateSwitchRef.current.timer);
+      templateSwitchRef.current.timer = null;
+    }
+
+    // 如果不是长按，则执行单击切换
+    if (!templateSwitchRef.current.isLongPress) {
+      handleTemplateCycle();
+    }
+  }, [handleTemplateCycle]);
 
   // 触发闪光效果
   const triggerFlash = useCallback(() => {
@@ -1035,6 +1106,17 @@ function App() {
               title={cameraEnabled ? '关闭摄像头' : '开启摄像头'}
             />
 
+            {/* Logo 按钮 - 左上角，用于快速切换模板 */}
+            <button
+              className="camera-logo-btn"
+              onMouseDown={handleLogoPress}
+              onMouseUp={handleLogoRelease}
+              onMouseLeave={handleLogoRelease}
+              onTouchStart={handleLogoPress}
+              onTouchEnd={handleLogoRelease}
+              title="点击切换风格模板，长按打开设置"
+            />
+
             {/* 正在进入相机的照片 */}
             {enteringPhoto && (
               <div className="entering-photo-container">
@@ -1054,6 +1136,16 @@ function App() {
 
             {/* 全屏闪光效果 */}
             {showFlash && <div className="camera-flash" />}
+
+            {/* 模板切换提示 */}
+            {templateToast && (
+              <div className="template-toast">
+                <span className="template-toast-icon">✨</span>
+                <span className="template-toast-text">
+                  {templateToast.index}/{templateToast.total} {templateToast.name}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* 右侧 - 生成的照片从这里滑出 */}

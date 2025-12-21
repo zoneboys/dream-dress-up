@@ -14,6 +14,7 @@
 | `eject.mp3` | 胶片弹出 |
 | `developing.mp3` | 显影中（循环播放） |
 | `click.mp3` | 点击音 |
+| `modeSwitch.mp3` | 模式/模板切换（机械转盘声） |
 
 **支持格式**：`.mp3`、`.wav`、`.ogg`
 

@@ -23,5 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# 自定义音效文件（用户本地）
-public/sounds/
+# 自定义音效文件（用户本地，仅忽略音频文件）
+public/sounds/*.mp3
+public/sounds/*.wav
+public/sounds/*.ogg

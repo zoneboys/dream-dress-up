@@ -32,6 +32,7 @@ body {
   gap: 12px;
 }
 
+.github-link,
 .history-btn,
 .settings-btn,
 .mute-btn {
@@ -46,6 +47,22 @@ body {
   cursor: pointer;
   box-shadow: 4px 4px 0 var(--border-strong);
   transition: all 0.1s ease;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.github-link {
+  padding: 10px 14px;
+}
+
+.github-link svg {
+  transition: transform 0.2s ease;
+}
+
+.github-link:hover svg {
+  transform: scale(1.1);
 }
 
 .mute-btn {
@@ -58,6 +75,7 @@ body {
   background: var(--button-secondary-bg);
 }
 
+.github-link:hover,
 .history-btn:hover,
 .settings-btn:hover,
 .mute-btn:hover {
@@ -65,6 +83,7 @@ body {
   box-shadow: 2px 2px 0 var(--border-strong);
 }
 
+.github-link:active,
 .history-btn:active,
 .settings-btn:active,
 .mute-btn:active {

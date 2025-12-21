@@ -343,6 +343,7 @@ function App() {
             setEnteringProgress(0);
             // 延迟一点再触发闪光和显示照片，确保动画视觉上完全消失
             setTimeout(() => {
+              playSound('shutter');
               triggerFlash();
               setCapturedPhoto(dataUrl);
               setEditName('');

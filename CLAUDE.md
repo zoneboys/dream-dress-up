@@ -124,6 +124,13 @@ confirm.mp3, complete.mp3, error.mp3, eject.mp3, developing.mp3, click.mp3
 - 支持 Web Share API（移动端系统分享）和下载图片
 - 主要 API：`generateShareCard()`, `shareImage()`, `downloadImage()`
 
+### 数据导入导出
+
+- 在设置面板底部有「📤 导出数据」和「📥 导入数据」按钮
+- 导出为 JSON 文件，包含：历史照片、相机位置、自定义模板、音效设置、API 设置
+- 导入后自动提示刷新页面加载数据
+- 文件名格式：`dream-dress-backup-YYYY-MM-DD.json`
+
 ### 相机拖拽
 
 - 相机可以拖拽到画板任意位置

@@ -1314,6 +1314,77 @@ function App() {
     setTempPrompt(DEFAULT_PROMPT_TEMPLATE);
   };
 
+  // 导出数据
+  const handleExportData = () => {
+    const exportData = {
+      version: 1,
+      exportTime: new Date().toISOString(),
+      data: {
+        history: localStorage.getItem(HISTORY_KEY),
+        cameraPosition: localStorage.getItem(CAMERA_POSITION_KEY),
+        templates: localStorage.getItem(TEMPLATES_STORAGE_KEY),
+        soundSettings: localStorage.getItem('dream-dress-sound-settings'),
+        settings: localStorage.getItem('dream-dress-settings'),
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dream-dress-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    playSound('complete');
+  };
+
+  // 导入数据
+  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importData = JSON.parse(event.target?.result as string);
+
+        if (!importData.data) {
+          setError('无效的备份文件');
+          playSound('error');
+          return;
+        }
+
+        // 恢复数据
+        const { data } = importData;
+        if (data.history) localStorage.setItem(HISTORY_KEY, data.history);
+        if (data.cameraPosition) localStorage.setItem(CAMERA_POSITION_KEY, data.cameraPosition);
+        if (data.templates) localStorage.setItem(TEMPLATES_STORAGE_KEY, data.templates);
+        if (data.soundSettings) localStorage.setItem('dream-dress-sound-settings', data.soundSettings);
+        if (data.settings) localStorage.setItem('dream-dress-settings', data.settings);
+
+        playSound('complete');
+
+        // 刷新页面以加载新数据
+        if (confirm('导入成功！需要刷新页面以加载数据，是否立即刷新？')) {
+          window.location.reload();
+        }
+      } catch (err) {
+        setError('导入失败：文件格式错误');
+        playSound('error');
+      }
+    };
+    reader.readAsText(file);
+
+    // 清空 input 以便再次选择同一文件
+    e.target.value = '';
+  };
+
+  // 导入文件输入框引用
+  const importInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="app">
       {/* 顶部按钮 */}
@@ -1930,6 +2001,35 @@ function App() {
                 </div>
                 <p className="settings-hint">
                   点击顶部 🔊 按钮可一键全部静音/恢复
+                </p>
+              </div>
+
+              {/* 数据备份 */}
+              <div className="settings-field">
+                <label>📦 数据备份</label>
+                <div className="backup-buttons">
+                  <button
+                    className="backup-btn export"
+                    onClick={() => { playSound('click'); handleExportData(); }}
+                  >
+                    📤 导出数据
+                  </button>
+                  <button
+                    className="backup-btn import"
+                    onClick={() => { playSound('click'); importInputRef.current?.click(); }}
+                  >
+                    📥 导入数据
+                  </button>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportData}
+                    style={{ display: 'none' }}
+                  />
+                </div>
+                <p className="settings-hint">
+                  导出包含：历史照片、相机位置、自定义模板、音效设置、API 设置
                 </p>
               </div>
 

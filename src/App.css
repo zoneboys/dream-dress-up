@@ -12,7 +12,7 @@ html, body, #root {
 
 body {
   font-family: 'Comic Sans MS', 'Chalkboard', cursive, sans-serif;
-  background: #e8e8e8;
+  background: var(--bg-primary);
 }
 
 .app {
@@ -33,33 +33,43 @@ body {
 }
 
 .history-btn,
-.settings-btn {
+.settings-btn,
+.mute-btn {
   padding: 12px 24px;
-  background: white;
-  border: 3px solid #333;
+  background: var(--card-bg);
+  border: 3px solid var(--border-strong);
   border-radius: 25px;
   font-family: 'Comic Sans MS', cursive;
   font-size: 14px;
   font-weight: bold;
+  color: var(--text-secondary);
   cursor: pointer;
-  box-shadow: 4px 4px 0 #333;
+  box-shadow: 4px 4px 0 var(--border-strong);
   transition: all 0.1s ease;
 }
 
+.mute-btn {
+  padding: 10px 14px;
+  font-size: 18px;
+  line-height: 1;
+}
+
 .settings-btn {
-  background: #f0f0f0;
+  background: var(--button-secondary-bg);
 }
 
 .history-btn:hover,
-.settings-btn:hover {
+.settings-btn:hover,
+.mute-btn:hover {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 #333;
+  box-shadow: 2px 2px 0 var(--border-strong);
 }
 
 .history-btn:active,
-.settings-btn:active {
+.settings-btn:active,
+.mute-btn:active {
   transform: translate(4px, 4px);
-  box-shadow: 0 0 0 #333;
+  box-shadow: 0 0 0 var(--border-strong);
 }
 
 /* 主区域 - 左右布局 */
@@ -93,7 +103,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #999;
+  color: var(--text-muted);
   text-align: center;
   pointer-events: none;
 }
@@ -106,16 +116,16 @@ body {
 
 .canvas-hint p {
   font-size: 14px;
-  color: #aaa;
+  color: var(--text-hint);
 }
 
 /* 胶片卡片 */
 .film-card {
   position: absolute;
   width: 160px;
-  background: white;
+  background: var(--card-bg);
   padding: 10px 10px 45px 10px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 30px var(--shadow-strong);
   cursor: grab;
   z-index: 10;
   transition: box-shadow 0.2s ease, transform 0.1s ease;
@@ -230,7 +240,7 @@ body {
   display: block;
   font-size: 12px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -240,7 +250,7 @@ body {
 .film-dream {
   display: block;
   font-size: 10px;
-  color: #666;
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -249,7 +259,7 @@ body {
 .film-date {
   display: block;
   font-size: 10px;
-  color: #666;
+  color: var(--text-tertiary);
   margin-top: 2px;
 }
 
@@ -313,9 +323,9 @@ body {
   width: 200px;
   flex-shrink: 0;
   padding: 10px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--card-bg);
   border-radius: 10px 0 0 10px;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  box-shadow: -4px 0 20px var(--shadow-color);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -323,10 +333,12 @@ body {
 
 .side-form .input-name {
   padding: 8px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 13px;
   outline: none;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .side-form .input-name:focus {
@@ -335,12 +347,14 @@ body {
 
 .side-form .input-dream {
   padding: 8px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 13px;
   resize: none;
   outline: none;
   font-family: inherit;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .side-form .input-dream:focus {
@@ -355,16 +369,17 @@ body {
 .side-form-actions .btn-cancel {
   flex: 1;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: white;
+  background: var(--card-bg);
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 14px;
   transition: background 0.2s;
 }
 
 .side-form-actions .btn-cancel:hover {
-  background: #f5f5f5;
+  background: var(--bg-hover);
 }
 
 .side-form-actions .btn-primary {
@@ -409,10 +424,10 @@ body {
   left: 0;
   top: 0;
   width: 160px;
-  background: white;
+  background: var(--card-bg);
   padding: 10px 10px 40px 10px;
   border-radius: 4px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 15px var(--shadow-color);
   transition: transform 0.5s ease;
   cursor: grab;
 }
@@ -459,7 +474,7 @@ body {
 
 .side-result-film .film-dream {
   font-size: 12px;
-  color: #333;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -467,7 +482,7 @@ body {
 
 .side-result-film .film-date {
   font-size: 10px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 /* 弹出的照片 */
@@ -477,9 +492,9 @@ body {
   left: 50%;
   margin-left: -75px;
   width: 150px;
-  background: white;
+  background: var(--card-bg);
   padding: 10px 10px 40px 10px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 30px var(--shadow-strong);
   cursor: grab;
   z-index: 50;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -541,7 +556,7 @@ body {
 .ejected-photo-inner {
   width: 130px;
   height: 130px;
-  background: #f0f0f0;
+  background: var(--bg-tertiary);
   overflow: hidden;
   position: relative;
 }
@@ -628,7 +643,7 @@ body {
   display: block;
   font-size: 11px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -637,7 +652,7 @@ body {
 .ejected-photo-date {
   display: block;
   font-size: 10px;
-  color: #666;
+  color: var(--text-tertiary);
   margin-top: 2px;
 }
 
@@ -807,13 +822,28 @@ body {
   font-size: 32px;
 }
 
+.camera-placeholder.camera-off {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.camera-placeholder.camera-off span {
+  font-size: 32px;
+  opacity: 0.5;
+}
+
+.camera-placeholder.camera-off small {
+  font-size: 12px;
+  color: #888;
+}
+
 /* 拍照按钮 - 圆形快门 */
 .camera-shutter {
   position: absolute;
-  top: 23.5%;
-  left: 60%;
-  width: 25px;
-  height: 25px;
+  top: 24%;
+  left: 61%;
+  width: 26px;
+  height: 26px;
   min-width: 0;
   padding: 0;
   background: transparent;
@@ -865,6 +895,32 @@ body {
 }
 
 .camera-upload:disabled {
+  cursor: not-allowed;
+}
+
+/* 摄像头开关按钮 - 左下角旋钮位置 */
+.camera-toggle {
+  position: absolute;
+  left: 15%;
+  top: 63%;
+  width: 40px;
+  height: 40px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.camera-toggle:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+
+.camera-toggle:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -920,9 +976,9 @@ body {
   left: 50%;
   margin-left: -80px;
   width: 160px;
-  background: white;
+  background: var(--card-bg);
   padding: 10px 10px 45px 10px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 30px var(--shadow-strong);
   z-index: 1;
   transition: transform 0.05s linear;
 }
@@ -974,7 +1030,7 @@ body {
   display: block;
   font-size: 12px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -984,7 +1040,7 @@ body {
 .ejecting-film .film-date {
   display: block;
   font-size: 10px;
-  color: #666;
+  color: var(--text-tertiary);
 }
 
 /* 待处理照片预览（在相机上方，大部分露出，底部小部分在出口内） */
@@ -999,9 +1055,9 @@ body {
 
 .pending-photo-card {
   width: 140px;
-  background: white;
+  background: var(--card-bg);
   padding: 8px 8px 35px 8px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 30px var(--shadow-strong);
   animation: photo-slide-up 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
@@ -1074,7 +1130,7 @@ body {
 
 .pending-photo-hint {
   font-size: 10px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 /* 拍立得照片区域 */
@@ -1093,7 +1149,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -1104,18 +1160,18 @@ body {
 
 .polaroids-empty p {
   font-size: 16px;
-  color: #888;
+  color: var(--text-muted);
 }
 
 /* 拍立得照片 */
 .polaroid {
   position: relative;
   width: 150px;
-  background: white;
+  background: var(--card-bg);
   padding: 10px 10px 40px 10px;
   box-shadow:
-    0 4px 15px rgba(0,0,0,0.2),
-    0 0 0 1px rgba(0,0,0,0.05);
+    0 4px 15px var(--shadow-color),
+    0 0 0 1px var(--shadow-color);
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -1135,7 +1191,7 @@ body {
 .polaroid-image {
   width: 130px;
   height: 130px;
-  background: #f0f0f0;
+  background: var(--bg-tertiary);
   overflow: hidden;
 }
 
@@ -1176,7 +1232,7 @@ body {
   display: block;
   font-size: 11px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1185,7 +1241,7 @@ body {
 .polaroid-date {
   display: block;
   font-size: 10px;
-  color: #666;
+  color: var(--text-tertiary);
   margin-top: 2px;
 }
 
@@ -1239,7 +1295,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--bg-overlay);
   backdrop-filter: blur(5px);
   z-index: 1000;
   display: flex;
@@ -1252,16 +1308,16 @@ body {
   position: relative;
   width: 100%;
   max-width: 400px;
-  background: white;
+  background: var(--card-bg);
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 25px 80px var(--shadow-strong);
 }
 
 .polaroid-preview {
   width: 100%;
   aspect-ratio: 1;
-  background: #f0f0f0;
+  background: var(--bg-tertiary);
   overflow: hidden;
 }
 
@@ -1309,7 +1365,7 @@ body {
 .view-name {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
@@ -1322,7 +1378,7 @@ body {
 
 .view-date {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 /* 通用样式 */
@@ -1333,12 +1389,13 @@ body {
   width: 36px;
   height: 36px;
   border: none;
-  background: white;
+  background: var(--card-bg);
   border-radius: 50%;
   font-size: 18px;
+  color: var(--text-primary);
   cursor: pointer;
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px var(--shadow-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1346,79 +1403,83 @@ body {
 }
 
 .btn-close:hover {
-  background: #f0f0f0;
+  background: var(--bg-hover);
   transform: scale(1.1);
 }
 
 .input-name {
   padding: 12px 16px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   font-size: 14px;
   outline: none;
   transition: all 0.2s ease;
-  background: #f9fafb;
+  background: var(--bg-input);
+  color: var(--text-primary);
   font-family: inherit;
 }
 
 .input-name:focus {
   border-color: #667eea;
-  background: white;
+  background: var(--card-bg);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .input-dream {
   padding: 12px 16px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   font-size: 14px;
   outline: none;
   resize: none;
   font-family: inherit;
   transition: all 0.2s ease;
-  background: #f9fafb;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .input-dream:focus {
   border-color: #667eea;
-  background: white;
+  background: var(--card-bg);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .input-select {
   padding: 12px 16px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   font-size: 14px;
   outline: none;
   transition: all 0.2s ease;
-  background: #f9fafb;
+  background: var(--bg-input);
+  color: var(--text-primary);
   font-family: inherit;
   cursor: pointer;
 }
 
 .input-select:focus {
   border-color: #667eea;
-  background: white;
+  background: var(--card-bg);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .input-prompt {
   padding: 12px 16px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   font-size: 13px;
   outline: none;
   resize: vertical;
   font-family: 'Courier New', monospace;
   transition: all 0.2s ease;
-  background: #f9fafb;
+  background: var(--bg-input);
+  color: var(--text-primary);
   line-height: 1.5;
 }
 
 .input-prompt:focus {
   border-color: #667eea;
-  background: white;
+  background: var(--card-bg);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -1468,16 +1529,17 @@ body {
 .btn-reset {
   margin-left: 10px;
   padding: 4px 10px;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color-dark);
   border-radius: 6px;
   font-size: 12px;
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-reset:hover {
-  background: #e5e7eb;
+  background: var(--bg-hover);
 }
 
 .spinner {
@@ -1541,21 +1603,22 @@ body {
   top: 20px;
   left: 20px;
   padding: 10px 20px;
-  background: white;
+  background: var(--card-bg);
   border: none;
   border-radius: 20px;
   font-family: 'Comic Sans MS', cursive;
   font-size: 14px;
   font-weight: bold;
+  color: var(--text-primary);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--shadow-color);
   z-index: 10;
   transition: all 0.2s ease;
 }
 
 .gallery-back:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px var(--shadow-strong);
 }
 
 .gallery-header {
@@ -1573,15 +1636,15 @@ body {
   font-family: 'Comic Sans MS', 'Chalkboard', cursive;
   font-size: 42px;
   font-weight: bold;
-  color: #4a3728;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  color: var(--text-primary);
+  text-shadow: 2px 2px 4px var(--shadow-color);
   margin-bottom: 10px;
 }
 
 .gallery-subtitle {
   font-family: 'Comic Sans MS', cursive;
   font-size: 16px;
-  color: #5a4738;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -1589,7 +1652,7 @@ body {
   width: 80%;
   max-width: 800px;
   height: 2px;
-  background: rgba(74, 55, 40, 0.3);
+  background: var(--border-color);
   margin: 0 auto 40px;
 }
 
@@ -1600,7 +1663,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #5a4738;
+  color: var(--text-secondary);
 }
 
 .gallery-empty span {
@@ -1628,9 +1691,9 @@ body {
 .gallery-polaroid {
   position: relative;
   width: 180px;
-  background: white;
+  background: var(--card-bg);
   padding: 12px 12px 50px 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 15px var(--shadow-strong);
   cursor: pointer;
   transition: all 0.3s ease;
   transform: rotate(var(--rotation, 0deg));
@@ -1639,7 +1702,7 @@ body {
 .gallery-polaroid:hover {
   transform: rotate(0deg) scale(1.08);
   z-index: 10;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px var(--shadow-strong);
 }
 
 /* 图钉 */
@@ -1661,7 +1724,7 @@ body {
   width: 156px;
   height: 156px;
   overflow: hidden;
-  background: #f0f0f0;
+  background: var(--bg-tertiary);
 }
 
 .gallery-polaroid-image img {
@@ -1683,7 +1746,7 @@ body {
   display: block;
   font-size: 13px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1693,7 +1756,7 @@ body {
 .gallery-polaroid-date {
   display: block;
   font-size: 11px;
-  color: #666;
+  color: var(--text-tertiary);
 }
 
 .gallery-polaroid-delete {
@@ -1730,7 +1793,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--bg-overlay);
   backdrop-filter: blur(4px);
   z-index: 1002;
   display: flex;
@@ -1743,10 +1806,10 @@ body {
   width: 100%;
   max-width: 500px;
   max-height: 90vh;
-  background: white;
+  background: var(--card-bg);
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 25px 80px var(--shadow-strong);
   display: flex;
   flex-direction: column;
 }
@@ -1756,14 +1819,14 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
 .settings-header h2 {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .settings-form {
@@ -1784,14 +1847,14 @@ body {
 .settings-field label {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
 }
 
 .settings-hint {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-tertiary);
   margin-top: 4px;
 }
 
@@ -1805,11 +1868,12 @@ body {
 }
 
 .settings-hint code {
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
   padding: 2px 6px;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   font-size: 11px;
+  color: var(--text-primary);
 }
 
 /* 模板列表 */
@@ -1824,16 +1888,17 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: #f3f4f6;
-  border: 2px solid #e5e7eb;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: var(--text-primary);
 }
 
 .template-item:hover {
-  background: #e5e7eb;
-  border-color: #d1d5db;
+  background: var(--bg-hover);
+  border-color: var(--border-color-dark);
 }
 
 .template-item.active {
@@ -1876,11 +1941,11 @@ body {
 .template-add {
   padding: 10px 14px;
   background: transparent;
-  border: 2px dashed #d1d5db;
+  border: 2px dashed var(--border-color-dark);
   border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-tertiary);
   transition: all 0.2s ease;
   font-family: inherit;
 }
@@ -1893,10 +1958,10 @@ body {
 
 /* 添加模板表单 */
 .add-template-field {
-  background: #f9fafb;
+  background: var(--bg-input);
   padding: 16px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 }
 
 .add-template-actions {
@@ -1907,17 +1972,81 @@ body {
 
 .btn-secondary {
   padding: 10px 16px;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color-dark);
   border-radius: 8px;
   font-size: 14px;
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: inherit;
 }
 
 .btn-secondary:hover {
-  background: #e5e7eb;
+  background: var(--bg-hover);
+}
+
+/* 音效设置列表 */
+.sound-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sound-setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sound-setting-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color-dark);
+}
+
+.sound-setting-item.enabled {
+  border-color: #667eea;
+}
+
+.sound-setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sound-setting-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.sound-setting-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.sound-setting-toggle {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.sound-setting-toggle.on {
+  background: #667eea;
+  color: white;
+}
+
+.sound-setting-toggle.off {
+  background: var(--border-color);
+  color: var(--text-tertiary);
 }
 
 /* 详情弹窗 */
@@ -1927,7 +2056,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--bg-overlay);
   backdrop-filter: blur(8px);
   z-index: 1001;
   display: flex;
@@ -1941,12 +2070,12 @@ body {
   width: 100%;
   max-width: 800px;
   max-height: 90vh;
-  background: white;
+  background: var(--card-bg);
   border-radius: 20px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 25px 80px var(--shadow-strong);
 }
 
 .detail-container .btn-close {
@@ -1954,14 +2083,14 @@ body {
   top: 16px;
   right: 16px;
   z-index: 10;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: var(--card-bg);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .detail-images {
   display: flex;
   gap: 2px;
-  background: #f0f0f0;
+  background: var(--bg-tertiary);
 }
 
 .detail-image-box {
@@ -1991,13 +2120,13 @@ body {
 .detail-info {
   padding: 24px;
   text-align: center;
-  background: white;
+  background: var(--card-bg);
 }
 
 .detail-name {
   font-size: 22px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
@@ -2010,7 +2139,7 @@ body {
 
 .detail-time {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 /* 响应式 */
@@ -2130,7 +2259,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--bg-overlay);
   backdrop-filter: blur(4px);
   z-index: 2000;
   display: flex;
@@ -2140,12 +2269,12 @@ body {
 }
 
 .delete-confirm-dialog {
-  background: white;
+  background: var(--card-bg);
   border-radius: 16px;
   padding: 24px;
   max-width: 300px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px var(--shadow-strong);
   text-align: center;
 }
 
@@ -2155,7 +2284,7 @@ body {
   margin: 0 auto 16px;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .delete-confirm-preview img {
@@ -2166,7 +2295,7 @@ body {
 
 .delete-confirm-text {
   font-size: 16px;
-  color: #374151;
+  color: var(--text-primary);
   margin-bottom: 20px;
   font-weight: 500;
 }
@@ -2179,17 +2308,17 @@ body {
 
 .delete-confirm-actions .btn-cancel {
   padding: 10px 20px;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color-dark);
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .delete-confirm-actions .btn-cancel:hover {
-  background: #e5e7eb;
+  background: var(--bg-hover);
 }
 
 .delete-confirm-actions .btn-delete {
@@ -2206,4 +2335,275 @@ body {
 
 .delete-confirm-actions .btn-delete:hover {
   background: #dc2626;
+}
+
+/* 分享按钮和弹窗样式 */
+.detail-actions {
+  padding: 16px 20px 20px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-share {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 25px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-share:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-share:active {
+  transform: translateY(0);
+}
+
+/* 分享弹窗 */
+.share-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-overlay);
+  backdrop-filter: blur(8px);
+  z-index: 1002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.share-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 25px 80px var(--shadow-strong);
+}
+
+.share-container .btn-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--bg-tertiary);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.share-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.share-preview {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.share-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.share-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.share-error {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-share-action {
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-share-action:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.btn-share-action.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-share-action.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-share-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+  .share-container {
+    max-width: 100%;
+    margin: 10px;
+    padding: 20px;
+  }
+
+  .share-preview {
+    aspect-ratio: 3/4;
+  }
+}
+
+/* 摄像头光圈动画 */
+.camera-iris {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  z-index: 5;
+  overflow: hidden;
+}
+
+.iris-blade {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%);
+  transform-origin: center center;
+  border: 1px solid #444;
+}
+
+.iris-blade:nth-child(1) { transform: rotate(0deg) translateY(-50%); }
+.iris-blade:nth-child(2) { transform: rotate(60deg) translateY(-50%); }
+.iris-blade:nth-child(3) { transform: rotate(120deg) translateY(-50%); }
+.iris-blade:nth-child(4) { transform: rotate(180deg) translateY(-50%); }
+.iris-blade:nth-child(5) { transform: rotate(240deg) translateY(-50%); }
+.iris-blade:nth-child(6) { transform: rotate(300deg) translateY(-50%); }
+
+/* 关闭动画 - 光圈收缩 */
+.camera-iris.closing .iris-blade {
+  animation: iris-close 0.4s ease-in forwards;
+}
+
+@keyframes iris-close {
+  0% {
+    transform: rotate(var(--rotation, 0deg)) translateY(-100%);
+  }
+  100% {
+    transform: rotate(var(--rotation, 0deg)) translateY(-20%);
+  }
+}
+
+.camera-iris.closing .iris-blade:nth-child(1) { --rotation: 0deg; }
+.camera-iris.closing .iris-blade:nth-child(2) { --rotation: 60deg; }
+.camera-iris.closing .iris-blade:nth-child(3) { --rotation: 120deg; }
+.camera-iris.closing .iris-blade:nth-child(4) { --rotation: 180deg; }
+.camera-iris.closing .iris-blade:nth-child(5) { --rotation: 240deg; }
+.camera-iris.closing .iris-blade:nth-child(6) { --rotation: 300deg; }
+
+/* 开启动画 - 光圈展开 */
+.camera-iris.opening .iris-blade {
+  animation: iris-open 0.4s ease-out forwards;
+}
+
+@keyframes iris-open {
+  0% {
+    transform: rotate(var(--rotation, 0deg)) translateY(-20%);
+  }
+  100% {
+    transform: rotate(var(--rotation, 0deg)) translateY(-100%);
+  }
+}
+
+.camera-iris.opening .iris-blade:nth-child(1) { --rotation: 0deg; }
+.camera-iris.opening .iris-blade:nth-child(2) { --rotation: 60deg; }
+.camera-iris.opening .iris-blade:nth-child(3) { --rotation: 120deg; }
+.camera-iris.opening .iris-blade:nth-child(4) { --rotation: 180deg; }
+.camera-iris.opening .iris-blade:nth-child(5) { --rotation: 240deg; }
+.camera-iris.opening .iris-blade:nth-child(6) { --rotation: 300deg; }
+
+/* 光圈中心圆形遮罩效果 */
+.camera-iris::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 0 0 200px #111;
+  z-index: 10;
+  transition: all 0.4s ease;
+}
+
+.camera-iris.closing::after {
+  animation: iris-center-close 0.4s ease-in forwards;
+}
+
+.camera-iris.opening::after {
+  animation: iris-center-open 0.4s ease-out forwards;
+}
+
+@keyframes iris-center-close {
+  0% { width: 200%; height: 200%; }
+  100% { width: 0; height: 0; }
+}
+
+@keyframes iris-center-open {
+  0% { width: 0; height: 0; }
+  100% { width: 200%; height: 200%; }
 }

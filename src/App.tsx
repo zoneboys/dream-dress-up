@@ -4,6 +4,27 @@ import { settingsManager } from './services/settings';
 import { generateCustomPrompt, DEFAULT_PROMPT_TEMPLATE, BUILT_IN_TEMPLATES, TEMPLATES_STORAGE_KEY } from './constants/dreams';
 import type { PromptTemplate } from './constants/dreams';
 import { IMAGE_MODELS } from './types';
+import {
+  playSound,
+  startDevelopingSound,
+  stopDevelopingSound,
+  getSoundSettings,
+  toggleMasterMute,
+  setCategoryEnabled,
+  allCategories,
+  categoryNames,
+  categoryDescriptions,
+  initAudio,
+  type SoundSettings,
+  type SoundCategory,
+} from './services/sound';
+import {
+  generateShareCard,
+  downloadImage,
+  canShare,
+  shareImage,
+  type ShareCardData,
+} from './services/share';
 import './App.css';
 
 // 胶片/照片类型（在画板上）
@@ -40,6 +61,8 @@ const HISTORY_KEY = 'dream-dress-history';
 function App() {
   // 摄像头状态
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [cameraTransition, setCameraTransition] = useState<'opening' | 'closing' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // 待确认的照片（拍照后弹窗编辑）
@@ -66,6 +89,14 @@ function App() {
   // 拖拽历史记录项
   const historyDragRef = useRef<{ id: string; startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
   const [draggingHistoryId, setDraggingHistoryId] = useState<string | null>(null);
+
+  // 分享功能状态
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [sharePreview, setSharePreview] = useState<string | null>(null);
+
+  // 音效设置状态
+  const [soundSettings, setSoundSettings] = useState<SoundSettings>(() => getSoundSettings());
 
   // API设置
   const [showSettings, setShowSettings] = useState(false);
@@ -136,6 +167,9 @@ function App() {
 
     const template = allTemplates.find(t => t.id === savedTemplateId);
     setTempPrompt(template?.template || config.customPrompt || DEFAULT_PROMPT_TEMPLATE);
+
+    // 初始化音频系统（预加载自定义音效）
+    initAudio();
   }, []);
 
   // 启动摄像头
@@ -148,6 +182,7 @@ function App() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         setCameraReady(true);
+        setCameraEnabled(true);
       }
     } catch (error) {
       console.error('无法访问摄像头:', error);
@@ -155,15 +190,91 @@ function App() {
     }
   }, []);
 
-  // 初始化摄像头
+  // 关闭摄像头
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraReady(false);
+    setCameraEnabled(false);
+  }, []);
+
+  // 切换摄像头开关
+  const toggleCamera = useCallback(async () => {
+    if (cameraTransition) return; // 动画进行中，忽略点击
+
+    if (streamRef.current) {
+      // 摄像头开着，关闭它
+      playSound('cameraOff');
+      setCameraTransition('closing');
+
+      // 等待关闭动画
+      setTimeout(() => {
+        streamRef.current?.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+        }
+        setCameraReady(false);
+        setCameraEnabled(false);
+        setCameraTransition(null);
+      }, 400);
+    } else {
+      // 摄像头关着，打开它
+      try {
+        setCameraTransition('opening');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setCameraReady(true);
+          setCameraEnabled(true);
+          playSound('cameraOn');
+          // 等待开启动画完成
+          setTimeout(() => setCameraTransition(null), 400);
+        }
+      } catch (error) {
+        console.error('无法访问摄像头:', error);
+        setError('无法访问摄像头');
+        playSound('error');
+        setCameraTransition(null);
+      }
+    }
+  }, [cameraTransition]);
+
+  // 页面卸载时清理摄像头
   useEffect(() => {
-    startCamera();
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, [startCamera]);
+  }, []);
+
+  // 切换全局静音
+  const handleToggleMasterMute = useCallback(() => {
+    const newMuted = toggleMasterMute();
+    setSoundSettings(getSoundSettings());
+    if (!newMuted) {
+      playSound('click'); // 开启声音时播放一下确认
+    }
+  }, []);
+
+  // 切换音效类别
+  const handleToggleCategory = useCallback((category: SoundCategory) => {
+    const newEnabled = !soundSettings.categories[category];
+    setCategoryEnabled(category, newEnabled);
+    setSoundSettings(getSoundSettings());
+    if (newEnabled) {
+      playSound('click');
+    }
+  }, [soundSettings]);
 
   // 触发闪光效果
   const triggerFlash = useCallback(() => {
@@ -174,6 +285,9 @@ function App() {
   // 拍照 - 只捕获照片，弹窗确认
   const takePhoto = useCallback(() => {
     if (!videoRef.current || capturedPhoto) return;
+
+    // 播放快门音效
+    playSound('shutter');
 
     // 触发闪光效果
     triggerFlash();
@@ -203,6 +317,9 @@ function App() {
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || capturedPhoto || enteringPhoto) return;
+
+    // 播放上传音效
+    playSound('upload');
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -239,6 +356,7 @@ function App() {
             setEnteringProgress(0);
             // 延迟一点再触发闪光和显示照片，确保动画视觉上完全消失
             setTimeout(() => {
+              playSound('shutter');
               triggerFlash();
               setCapturedPhoto(dataUrl);
               setEditName('');
@@ -257,6 +375,7 @@ function App() {
   const handleConfirmAndGenerate = async () => {
     if (!capturedPhoto || !editDream.trim()) {
       setError('请输入梦想');
+      playSound('error');
       return;
     }
 
@@ -289,11 +408,17 @@ function App() {
       ejectProgress: 0,
     };
 
+    // 播放确认生成音效
+    playSound('confirm');
+
     setFilms(prev => [...prev, newFilm]);
     setCapturedPhoto(null);
     setEditName('');
     setEditDream('');
     setError(null);
+
+    // 播放胶片弹出音效
+    playSound('eject');
 
     // 胶片缓慢出现动画（渐入效果）- 更慢的速度
     let ejectProgress = 0;
@@ -331,6 +456,9 @@ function App() {
             : f
         ));
 
+        // 播放显影音效
+        startDevelopingSound();
+
         // 显影动画（逐渐显示）- 更慢的速度
         let progress = 0;
         let hasAddedToHistory = false; // 防止重复添加
@@ -339,6 +467,10 @@ function App() {
 
           if (progress >= 100) {
             clearInterval(developInterval);
+
+            // 停止显影音效，播放完成音效
+            stopDevelopingSound();
+            playSound('complete');
 
             // 防止重复添加到历史
             if (hasAddedToHistory) return;
@@ -371,7 +503,7 @@ function App() {
                 // 添加到历史记录
                 const newItem: HistoryItem = {
                   id: Date.now().toString(),
-                  name: completedFilm.name || '未命名',
+                  name: completedFilm.name || '',
                   dream: completedFilm.dream,
                   originalPhoto: completedFilm.originalPhoto,
                   resultPhoto: imageUrl,
@@ -409,6 +541,7 @@ function App() {
       }
     } catch (e: any) {
       setError(e.message || '生成失败，请重试');
+      playSound('error');
       // 移除失败的胶片
       setFilms(prev => prev.filter(f => f.id !== filmId));
     }
@@ -536,6 +669,87 @@ function App() {
   // 取消删除
   const cancelDelete = () => {
     setDeleteConfirmItem(null);
+  };
+
+  // 打开分享菜单
+  const openShareMenu = async () => {
+    if (!selectedHistoryItem) return;
+    playSound('click');
+    setShowShareMenu(true);
+    setShareLoading(true);
+    setSharePreview(null);
+
+    try {
+      const cardData: ShareCardData = {
+        name: selectedHistoryItem.name,
+        dream: selectedHistoryItem.dream,
+        resultPhoto: selectedHistoryItem.resultPhoto,
+        timestamp: selectedHistoryItem.timestamp,
+      };
+      const blob = await generateShareCard(cardData);
+      const url = URL.createObjectURL(blob);
+      setSharePreview(url);
+    } catch (e) {
+      console.error('生成分享卡片失败:', e);
+      setError('生成分享卡片失败');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  // 关闭分享菜单
+  const closeShareMenu = () => {
+    playSound('click');
+    if (sharePreview) {
+      URL.revokeObjectURL(sharePreview);
+    }
+    setShowShareMenu(false);
+    setSharePreview(null);
+  };
+
+  // 分享到系统
+  const handleShare = async () => {
+    if (!selectedHistoryItem || !sharePreview) return;
+    playSound('click');
+
+    try {
+      const response = await fetch(sharePreview);
+      const blob = await response.blob();
+      const cardData: ShareCardData = {
+        name: selectedHistoryItem.name,
+        dream: selectedHistoryItem.dream,
+        resultPhoto: selectedHistoryItem.resultPhoto,
+        timestamp: selectedHistoryItem.timestamp,
+      };
+
+      if (canShare()) {
+        await shareImage(blob, cardData);
+        playSound('complete');
+      } else {
+        // 不支持 Web Share API，降级为下载
+        handleDownload();
+      }
+    } catch (e) {
+      console.error('分享失败:', e);
+      setError('分享失败，请尝试下载图片');
+    }
+  };
+
+  // 下载分享卡片
+  const handleDownload = async () => {
+    if (!selectedHistoryItem || !sharePreview) return;
+    playSound('click');
+
+    try {
+      const response = await fetch(sharePreview);
+      const blob = await response.blob();
+      const filename = `梦想变装-${selectedHistoryItem.name}-${Date.now()}.png`;
+      downloadImage(blob, filename);
+      playSound('complete');
+    } catch (e) {
+      console.error('下载失败:', e);
+      setError('下载失败');
+    }
   };
 
   // 记录是否真正拖动过（用于区分点击和拖动）
@@ -694,10 +908,17 @@ function App() {
     <div className="app">
       {/* 顶部按钮 */}
       <div className="top-buttons">
-        <button className="settings-btn" onClick={() => setShowSettings(true)}>
+        <button
+          className="mute-btn"
+          onClick={handleToggleMasterMute}
+          title={soundSettings.masterMute ? '开启声音' : '全部静音'}
+        >
+          {soundSettings.masterMute ? '🔇' : '🔊'}
+        </button>
+        <button className="settings-btn" onClick={() => { playSound('click'); setShowSettings(true); }}>
           SETTINGS
         </button>
-        <button className="history-btn" onClick={() => setShowHistory(true)}>
+        <button className="history-btn" onClick={() => { playSound('click'); setShowHistory(true); }}>
           GALLERY
         </button>
       </div>
@@ -725,7 +946,7 @@ function App() {
                   rows={3}
                 />
                 <div className="side-form-actions">
-                  <button className="btn-cancel" onClick={cancelCapture}>取消</button>
+                  <button className="btn-cancel" onClick={() => { playSound('click'); cancelCapture(); }}>取消</button>
                   <button
                     className="btn-primary"
                     onClick={handleConfirmAndGenerate}
@@ -749,9 +970,26 @@ function App() {
                     playsInline
                     muted
                     className="camera-video"
+                    style={{ display: cameraEnabled ? 'block' : 'none' }}
                   />
-                  {!cameraReady && (
+                  {!cameraEnabled && !cameraTransition ? (
+                    <div className="camera-placeholder camera-off">
+                      <span>📷</span>
+                      <small>摄像头已关闭</small>
+                    </div>
+                  ) : !cameraReady && !cameraTransition && (
                     <div className="camera-placeholder">📷</div>
+                  )}
+                  {/* 光圈动画遮罩 */}
+                  {cameraTransition && (
+                    <div className={`camera-iris ${cameraTransition}`}>
+                      <div className="iris-blade"></div>
+                      <div className="iris-blade"></div>
+                      <div className="iris-blade"></div>
+                      <div className="iris-blade"></div>
+                      <div className="iris-blade"></div>
+                      <div className="iris-blade"></div>
+                    </div>
                   )}
                 </>
               )}
@@ -764,7 +1002,7 @@ function App() {
             <button
               className="camera-shutter"
               onClick={takePhoto}
-              disabled={!!capturedPhoto}
+              disabled={!!capturedPhoto || !cameraEnabled}
               title="拍照"
             />
 
@@ -777,6 +1015,14 @@ function App() {
             >
               <span className="upload-arrow">↑</span>
             </button>
+
+            {/* 摄像头开关按钮 - 左下角旋钮位置 */}
+            <button
+              className={`camera-toggle ${cameraEnabled ? 'on' : 'off'}`}
+              onClick={toggleCamera}
+              disabled={!!capturedPhoto}
+              title={cameraEnabled ? '关闭摄像头' : '开启摄像头'}
+            />
 
             {/* 正在进入相机的照片 */}
             {enteringPhoto && (
@@ -893,7 +1139,9 @@ function App() {
               <img src={item.resultPhoto} alt={item.name} />
             </div>
             <div className="film-info">
-              <span className="film-name">{item.name}</span>
+              {item.name && item.name.trim() !== '' && item.name.trim() !== '未命名' && (
+                <span className="film-name">{item.name}</span>
+              )}
               <span className="film-dream">{item.dream}</span>
             </div>
             <button
@@ -933,7 +1181,7 @@ function App() {
         <div className="gallery-overlay">
           <div className="gallery-container">
             {/* 返回按钮 */}
-            <button className="gallery-back" onClick={() => setShowHistory(false)}>
+            <button className="gallery-back" onClick={() => { playSound('click'); setShowHistory(false); }}>
               ← Back to Camera
             </button>
 
@@ -990,11 +1238,11 @@ function App() {
 
       {/* 设置弹窗 */}
       {showSettings && (
-        <div className="settings-overlay" onClick={() => setShowSettings(false)}>
+        <div className="settings-overlay" onClick={() => { playSound('click'); setShowSettings(false); }}>
           <div className="settings-container" onClick={(e) => e.stopPropagation()}>
             <div className="settings-header">
               <h2>⚙️ 设置</h2>
-              <button className="btn-close" onClick={() => setShowSettings(false)}>✕</button>
+              <button className="btn-close" onClick={() => { playSound('click'); setShowSettings(false); }}>✕</button>
             </div>
             <div className="settings-form">
               <div className="settings-field">
@@ -1107,9 +1355,35 @@ function App() {
                   使用 <code>{'{dream}'}</code> 作为用户输入梦想的占位符。编辑后点击"添加模板"可保存为新模板。
                 </p>
               </div>
+
+              {/* 音效设置 */}
+              <div className="settings-field">
+                <label>🔊 音效设置</label>
+                <div className="sound-settings-list">
+                  {allCategories.map((category) => (
+                    <div
+                      key={category}
+                      className={`sound-setting-item ${soundSettings.categories[category] ? 'enabled' : 'disabled'}`}
+                      onClick={() => handleToggleCategory(category)}
+                    >
+                      <div className="sound-setting-info">
+                        <span className="sound-setting-name">{categoryNames[category]}</span>
+                        <span className="sound-setting-desc">{categoryDescriptions[category]}</span>
+                      </div>
+                      <div className={`sound-setting-toggle ${soundSettings.categories[category] ? 'on' : 'off'}`}>
+                        {soundSettings.categories[category] ? '开' : '关'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="settings-hint">
+                  点击顶部 🔊 按钮可一键全部静音/恢复
+                </p>
+              </div>
+
               <button
                 className="btn-primary"
-                onClick={handleSaveSettings}
+                onClick={() => { playSound('click'); handleSaveSettings(); }}
               >
                 保存设置
               </button>
@@ -1120,9 +1394,9 @@ function App() {
 
       {/* 图片详情弹窗 */}
       {selectedHistoryItem && (
-        <div className="detail-overlay" onClick={() => setSelectedHistoryItem(null)}>
+        <div className="detail-overlay" onClick={() => { playSound('click'); setSelectedHistoryItem(null); }}>
           <div className="detail-container" onClick={(e) => e.stopPropagation()}>
-            <button className="btn-close" onClick={() => setSelectedHistoryItem(null)}>✕</button>
+            <button className="btn-close" onClick={() => { playSound('click'); setSelectedHistoryItem(null); }}>✕</button>
             <div className="detail-images">
               <div className="detail-image-box">
                 <span className="detail-label">原始照片</span>
@@ -1134,9 +1408,56 @@ function App() {
               </div>
             </div>
             <div className="detail-info">
-              <p className="detail-name">{selectedHistoryItem.name}</p>
+              {selectedHistoryItem.name && selectedHistoryItem.name.trim() !== '' && selectedHistoryItem.name.trim() !== '未命名' && (
+                <p className="detail-name">{selectedHistoryItem.name}</p>
+              )}
               <p className="detail-dream">"{selectedHistoryItem.dream}"</p>
               <p className="detail-time">{new Date(selectedHistoryItem.timestamp).toLocaleString()}</p>
+            </div>
+            <div className="detail-actions">
+              <button className="btn-share" onClick={openShareMenu}>
+                📤 分享
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 分享菜单弹窗 */}
+      {showShareMenu && (
+        <div className="share-overlay" onClick={closeShareMenu}>
+          <div className="share-container" onClick={(e) => e.stopPropagation()}>
+            <button className="btn-close" onClick={closeShareMenu}>✕</button>
+            <h3 className="share-title">分享卡片</h3>
+            <div className="share-preview">
+              {shareLoading ? (
+                <div className="share-loading">
+                  <span className="loading-spinner"></span>
+                  <p>生成中...</p>
+                </div>
+              ) : sharePreview ? (
+                <img src={sharePreview} alt="分享卡片预览" />
+              ) : (
+                <p className="share-error">生成失败</p>
+              )}
+            </div>
+            <div className="share-actions">
+              {canShare() && (
+                <button
+                  className="btn-share-action primary"
+                  onClick={handleShare}
+                  disabled={shareLoading || !sharePreview}
+                >
+                  📲 分享给好友
+                </button>
+              )}
+              <button
+                className="btn-share-action"
+                onClick={handleDownload}
+                disabled={shareLoading || !sharePreview}
+              >
+                💾 保存图片
+              </button>
             </div>
           </div>
         </div>
@@ -1144,15 +1465,15 @@ function App() {
 
       {/* 删除确认弹窗 */}
       {deleteConfirmItem && (
-        <div className="delete-confirm-overlay" onClick={cancelDelete}>
+        <div className="delete-confirm-overlay" onClick={() => { playSound('click'); cancelDelete(); }}>
           <div className="delete-confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="delete-confirm-preview">
               <img src={deleteConfirmItem.resultPhoto} alt="预览" />
             </div>
             <p className="delete-confirm-text">确定要删除这张照片吗？</p>
             <div className="delete-confirm-actions">
-              <button className="btn-cancel" onClick={cancelDelete}>取消</button>
-              <button className="btn-delete" onClick={confirmDeleteHistoryItem}>确认删除</button>
+              <button className="btn-cancel" onClick={() => { playSound('click'); cancelDelete(); }}>取消</button>
+              <button className="btn-delete" onClick={() => { playSound('click'); confirmDeleteHistoryItem(); }}>确认删除</button>
             </div>
           </div>
         </div>

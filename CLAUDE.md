@@ -62,6 +62,7 @@ src/
 - 使用 OpenAI 兼容的图像生成 API（默认 `api.tu-zi.com`）
 - 支持通过 URL 参数传入 API 配置：`?apiKey=xxx` 或 `?settings={"key":"xxx","url":"xxx"}`
 - 模型配置在 `src/types/index.ts` 的 `IMAGE_MODELS` 数组中
+- **API Key 缺失提示**：未设置时点击生成会打开设置面板，显示黄色警告条 + 红色高亮输入框 + 自动聚焦
 
 ### 主题系统
 

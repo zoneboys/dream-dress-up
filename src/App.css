@@ -2814,7 +2814,7 @@ body {
 /* 模板切换提示 - LCD 复古数码风格 */
 .template-toast {
   position: absolute;
-  top: -35px;
+  top: 35px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;

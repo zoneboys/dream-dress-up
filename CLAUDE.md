@@ -123,6 +123,14 @@ confirm.mp3, complete.mp3, error.mp3, eject.mp3, developing.mp3, click.mp3
 - 支持 Web Share API（移动端系统分享）和下载图片
 - 主要 API：`generateShareCard()`, `shareImage()`, `downloadImage()`
 
+### 相机拖拽
+
+- 相机可以拖拽到画板任意位置
+- 左侧表单、右侧胶片、闪光效果等会自动跟随
+- 拖拽范围有限制，保留边距给表单和胶片弹出
+- 位置持久化到 localStorage（key: `dream-dress-camera-position`）
+- 状态：`cameraPosition`、`isDraggingCamera`、`cameraDragRef`
+
 ### 动画效果
 
 - **摄像头光圈动画**：开关摄像头时模拟相机光圈开合效果（6 片叶片）

@@ -60,8 +60,15 @@ interface HistoryItem {
 
 // 本地存储 key
 const HISTORY_KEY = 'dream-dress-history';
+const CAMERA_POSITION_KEY = 'dream-dress-camera-position';
 
 function App() {
+  // 相机位置（可拖拽）
+  const [cameraPosition, setCameraPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDraggingCamera, setIsDraggingCamera] = useState(false);
+  const cameraDragRef = useRef<{ startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
+  const cameraWrapperRef = useRef<HTMLDivElement>(null);
+
   // 摄像头状态
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
@@ -188,6 +195,16 @@ function App() {
 
     // 初始化音频系统（预加载自定义音效）
     initAudio();
+
+    // 加载相机位置
+    try {
+      const savedCameraPos = localStorage.getItem(CAMERA_POSITION_KEY);
+      if (savedCameraPos) {
+        setCameraPosition(JSON.parse(savedCameraPos));
+      }
+    } catch (e) {
+      console.error('加载相机位置失败', e);
+    }
   }, []);
 
   // 启动摄像头（保留备用）
@@ -1134,6 +1151,90 @@ function App() {
     }
   }, [draggingHistoryId, handleHistoryDragMove, handleHistoryDragEnd]);
 
+  // 相机拖拽开始
+  const handleCameraDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    // 如果点击的是按钮或输入框，不启动拖拽
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' ||
+        target.closest('button') || target.closest('input') || target.closest('textarea') ||
+        target.closest('.side-form') || target.closest('.side-result')) {
+      return;
+    }
+
+    e.preventDefault();
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    // 获取当前相机位置
+    const currentX = cameraPosition?.x ?? 0;
+    const currentY = cameraPosition?.y ?? 0;
+
+    cameraDragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      offsetX: currentX,
+      offsetY: currentY,
+    };
+
+    setIsDraggingCamera(true);
+  }, [cameraPosition]);
+
+  // 相机拖拽移动
+  const handleCameraDragMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!cameraDragRef.current) return;
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    const dx = clientX - cameraDragRef.current.startX;
+    const dy = clientY - cameraDragRef.current.startY;
+
+    let newX = cameraDragRef.current.offsetX + dx;
+    let newY = cameraDragRef.current.offsetY + dy;
+
+    // 限制拖拽范围（保留边距给表单和胶片）
+    const minX = -window.innerWidth / 2 + 350; // 左边留空间给表单
+    const maxX = window.innerWidth / 2 - 350;  // 右边留空间给胶片
+    const minY = -window.innerHeight / 2 + 250;
+    const maxY = window.innerHeight / 2 - 150;
+
+    newX = Math.max(minX, Math.min(maxX, newX));
+    newY = Math.max(minY, Math.min(maxY, newY));
+
+    setCameraPosition({ x: newX, y: newY });
+  }, []);
+
+  // 相机拖拽结束
+  const handleCameraDragEnd = useCallback(() => {
+    if (!cameraDragRef.current) return;
+
+    // 保存位置到 localStorage
+    if (cameraPosition) {
+      localStorage.setItem(CAMERA_POSITION_KEY, JSON.stringify(cameraPosition));
+    }
+
+    setIsDraggingCamera(false);
+    cameraDragRef.current = null;
+  }, [cameraPosition]);
+
+  // 监听相机拖拽事件
+  useEffect(() => {
+    if (isDraggingCamera) {
+      window.addEventListener('mousemove', handleCameraDragMove);
+      window.addEventListener('mouseup', handleCameraDragEnd);
+      window.addEventListener('touchmove', handleCameraDragMove);
+      window.addEventListener('touchend', handleCameraDragEnd);
+
+      return () => {
+        window.removeEventListener('mousemove', handleCameraDragMove);
+        window.removeEventListener('mouseup', handleCameraDragEnd);
+        window.removeEventListener('touchmove', handleCameraDragMove);
+        window.removeEventListener('touchend', handleCameraDragEnd);
+      };
+    }
+  }, [isDraggingCamera, handleCameraDragMove, handleCameraDragEnd]);
+
   // 保存设置
   const handleSaveSettings = () => {
     settingsManager.updateConfig({
@@ -1250,7 +1351,15 @@ function App() {
       <main className="canvas-area" ref={canvasRef}>
         {/* 相机区域（包含左侧表单、相机、右侧结果） */}
         <div className="camera-section">
-          <div className="camera-wrapper">
+          <div
+            ref={cameraWrapperRef}
+            className={`camera-wrapper ${isDraggingCamera ? 'dragging' : ''}`}
+            style={cameraPosition ? {
+              transform: `translate(${cameraPosition.x}px, ${cameraPosition.y}px)`,
+            } : undefined}
+            onMouseDown={handleCameraDragStart}
+            onTouchStart={handleCameraDragStart}
+          >
             {/* 左侧表单 - 拍照后从相机左侧延伸 */}
             <div className={`side-form ${capturedPhoto ? 'visible' : ''}`}>
               <div className="side-form-content">

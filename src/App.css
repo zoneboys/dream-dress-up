@@ -840,6 +840,14 @@ body {
   width: 450px;
   height: 450px;
   flex-shrink: 0;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.05s ease-out;
+}
+
+.camera-wrapper.dragging {
+  cursor: grabbing;
+  transition: none;
 }
 
 /* 相机图片 */

@@ -47,13 +47,22 @@ src/
 
 - `films: FilmPhoto[]` - 正在生成/显影中的胶片（画板上可拖拽）
 - `history: HistoryItem[]` - 已完成的照片（持久化到 localStorage）
-- 胶片状态流转：`isEjecting` → `isGenerating` → `isDeveloping` → 完成
+- 胶片状态流转：`isEjecting` → `isGenerating` → `isDeveloping` → 完成（或 `isFailed`）
+
+### 生成失败重试
+
+- 生成失败后胶片保留在原位，显示原图 + 红色遮罩层
+- 遮罩显示 "✕ 生成失败"，下方有「重试」和「删除」按钮
+- 点击重试会使用原有照片和梦想描述重新调用 API
+- 主要函数：`handleRetryGenerate(filmId)`, `handleDeleteFailedFilm(filmId)`
+- 样式：`.film-failed-overlay`, `.film-retry-btn`, `.film-delete-btn`（App.css）
 
 ### API 集成
 
 - 使用 OpenAI 兼容的图像生成 API（默认 `api.tu-zi.com`）
 - 支持通过 URL 参数传入 API 配置：`?apiKey=xxx` 或 `?settings={"key":"xxx","url":"xxx"}`
 - 模型配置在 `src/types/index.ts` 的 `IMAGE_MODELS` 数组中
+- **API Key 缺失提示**：未设置时点击生成会打开设置面板，显示黄色警告条 + 红色高亮输入框 + 自动聚焦
 
 ### 主题系统
 
@@ -86,12 +95,42 @@ confirm.mp3, complete.mp3, error.mp3, eject.mp3, developing.mp3, click.mp3
 - 切换会播放机械转盘音效（modeSwitch）
 - 位置样式：`.camera-logo-btn`（App.css）、`.template-toast`（App.css）
 
+### 多张生成（抽卡模式）
+
+- 在梦想输入表单中可选择同时生成 1-4 张照片
+- 按钮组 UI：`1 张`、`2 张`、`3 张`、`4 张`，默认选中 1 张
+- 点击生成后，胶片按顺序弹出（每张间隔 600ms）
+- 多张胶片位置错开（向右下偏移 30px、20px）
+- 并行调用 API 生成，各自独立显影
+- 显影音效智能管理：第一张开始时播放，最后一张完成时停止
+- 状态：`generateCount`（1-4）、`developingCountRef`（正在显影的胶片计数）
+- 防重复机制：`addedHistoryIdsRef` 防止 React 并发模式下历史记录重复添加
+
+### 照片收纳功能
+
+- 画板照片太多时，可以收纳到 Gallery 中
+- **拖拽收纳**：拖拽照片到 GALLERY 按钮上松开即可收纳
+- **点击收纳**：每张照片右上角有 📥 收纳按钮
+- **拖拽提示**：开始拖拽时，GALLERY 按钮变为 "📥 拖到这里收纳"
+- **角标显示**：GALLERY 按钮显示已收纳照片数量角标
+- **放回画板**：在 Gallery 中点击 📤 按钮可将照片放回画板
+- 数据结构：`HistoryItem.isOnCanvas`（true=画板上，false=已收纳）
+- 主要函数：`collectPhoto(itemId)`, `restoreToCanvas(itemId)`
+
 ### 分享功能
 
 - 点击照片查看大图，底部有「分享」按钮
 - 生成精美分享卡片（Canvas 绘制），包含：变装照片、梦想描述、日期、网站水印
 - 支持 Web Share API（移动端系统分享）和下载图片
 - 主要 API：`generateShareCard()`, `shareImage()`, `downloadImage()`
+
+### 相机拖拽
+
+- 相机可以拖拽到画板任意位置
+- 左侧表单、右侧胶片、闪光效果等会自动跟随
+- 拖拽范围有限制，保留边距给表单和胶片弹出
+- 位置持久化到 localStorage（key: `dream-dress-camera-position`）
+- 状态：`cameraPosition`、`isDraggingCamera`、`cameraDragRef`
 
 ### 动画效果
 

@@ -42,6 +42,8 @@ interface FilmPhoto {
   isDragging: boolean;
   isEjecting: boolean;
   ejectProgress: number; // 0-100 弹出进度
+  isFailed: boolean;     // 生成失败
+  errorMessage?: string; // 错误信息
 }
 
 // 历史记录类型（带位置信息）
@@ -53,12 +55,20 @@ interface HistoryItem {
   resultPhoto: string;
   timestamp: number;
   position: { x: number; y: number };
+  isOnCanvas: boolean; // true=显示在画板, false=已收纳到Gallery
 }
 
 // 本地存储 key
 const HISTORY_KEY = 'dream-dress-history';
+const CAMERA_POSITION_KEY = 'dream-dress-camera-position';
 
 function App() {
+  // 相机位置（可拖拽）
+  const [cameraPosition, setCameraPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDraggingCamera, setIsDraggingCamera] = useState(false);
+  const cameraDragRef = useRef<{ startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
+  const cameraWrapperRef = useRef<HTMLDivElement>(null);
+
   // 摄像头状态
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
@@ -69,6 +79,7 @@ function App() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editDream, setEditDream] = useState('');
+  const [generateCount, setGenerateCount] = useState(1); // 生成数量 1-4
 
   // 正在进入相机的照片（上传动画）
   const [enteringPhoto, setEnteringPhoto] = useState<string | null>(null);
@@ -89,6 +100,8 @@ function App() {
   // 拖拽历史记录项
   const historyDragRef = useRef<{ id: string; startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
   const [draggingHistoryId, setDraggingHistoryId] = useState<string | null>(null);
+  const [isOverGallery, setIsOverGallery] = useState(false); // 拖拽时是否悬停在 Gallery 按钮上
+  const galleryBtnRef = useRef<HTMLButtonElement>(null);
 
   // 分享功能状态
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -100,10 +113,17 @@ function App() {
 
   // 模板切换提示状态
   const [templateToast, setTemplateToast] = useState<{ name: string; index: number; total: number } | null>(null);
-  const templateSwitchRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; isLongPress: boolean }>({ timer: null, isLongPress: false });
+  const templateSwitchRef = useRef<{
+    timer: ReturnType<typeof setTimeout> | null;
+    isLongPress: boolean;
+    isPressed: boolean;  // 是否真正按下了
+    lastSwitchTime: number;  // 上次切换时间，防抖用
+  }>({ timer: null, isLongPress: false, isPressed: false, lastSwitchTime: 0 });
 
   // API设置
   const [showSettings, setShowSettings] = useState(false);
+  const [showApiKeyWarning, setShowApiKeyWarning] = useState(false); // 是否显示 API Key 缺失警告
+  const apiKeyInputRef = useRef<HTMLInputElement>(null);
   const [tempApiUrl, setTempApiUrl] = useState('https://api.tu-zi.com/v1');
   const [tempApiKey, setTempApiKey] = useState('');
   const [tempModel, setTempModel] = useState('gemini-3-pro-image-preview-vip');
@@ -119,6 +139,8 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
+  const developingCountRef = useRef(0); // 跟踪正在显影的照片数量
+  const addedHistoryIdsRef = useRef<Set<string>>(new Set()); // 防止重复添加到历史记录
 
   // 加载历史记录和设置
   useEffect(() => {
@@ -126,13 +148,14 @@ function App() {
       const saved = localStorage.getItem(HISTORY_KEY);
       if (saved) {
         const items = JSON.parse(saved) as HistoryItem[];
-        // 为旧数据添加位置信息
+        // 为旧数据添加位置信息和 isOnCanvas 字段
         const itemsWithPosition = items.map((item, index) => ({
           ...item,
           position: item.position || {
             x: 500 + (index % 5) * 180,
             y: 80 + Math.floor(index / 5) * 220
-          }
+          },
+          isOnCanvas: item.isOnCanvas !== undefined ? item.isOnCanvas : true, // 旧数据默认显示在画板
         }));
         setHistory(itemsWithPosition);
       }
@@ -174,6 +197,16 @@ function App() {
 
     // 初始化音频系统（预加载自定义音效）
     initAudio();
+
+    // 加载相机位置
+    try {
+      const savedCameraPos = localStorage.getItem(CAMERA_POSITION_KEY);
+      if (savedCameraPos) {
+        setCameraPosition(JSON.parse(savedCameraPos));
+      }
+    } catch (e) {
+      console.error('加载相机位置失败', e);
+    }
   }, []);
 
   // 启动摄像头（保留备用）
@@ -317,7 +350,13 @@ function App() {
   }, [templates, tempTemplateId]);
 
   // Logo 按钮 - 按下开始
-  const handleLogoPress = useCallback(() => {
+  const handleLogoPress = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault(); // 防止触摸设备同时触发 mouse 和 touch 事件
+
+    // 如果已经按下，忽略（防止重复触发）
+    if (templateSwitchRef.current.isPressed) return;
+
+    templateSwitchRef.current.isPressed = true;
     templateSwitchRef.current.isLongPress = false;
 
     // 设置长按定时器（500ms）
@@ -335,17 +374,36 @@ function App() {
 
   // Logo 按钮 - 松开
   const handleLogoRelease = useCallback(() => {
+    // 如果没有按下状态，忽略（防止 mouseLeave 误触发）
+    if (!templateSwitchRef.current.isPressed) return;
+
     // 清除长按定时器
     if (templateSwitchRef.current.timer) {
       clearTimeout(templateSwitchRef.current.timer);
       templateSwitchRef.current.timer = null;
     }
 
-    // 如果不是长按，则执行单击切换
-    if (!templateSwitchRef.current.isLongPress) {
+    // 如果不是长按，则执行单击切换（带防抖，300ms内不重复触发）
+    const now = Date.now();
+    if (!templateSwitchRef.current.isLongPress && now - templateSwitchRef.current.lastSwitchTime > 300) {
+      templateSwitchRef.current.lastSwitchTime = now;
       handleTemplateCycle();
     }
+
+    // 重置按下状态
+    templateSwitchRef.current.isPressed = false;
   }, [handleTemplateCycle]);
+
+  // Logo 按钮 - 鼠标离开（只取消长按，不触发切换）
+  const handleLogoLeave = useCallback(() => {
+    // 清除长按定时器
+    if (templateSwitchRef.current.timer) {
+      clearTimeout(templateSwitchRef.current.timer);
+      templateSwitchRef.current.timer = null;
+    }
+    // 重置状态，但不触发切换
+    templateSwitchRef.current.isPressed = false;
+  }, []);
 
   // 触发闪光效果
   const triggerFlash = useCallback(() => {
@@ -442,59 +500,17 @@ function App() {
     e.target.value = '';
   }, [capturedPhoto, enteringPhoto, triggerFlash]);
 
-  // 确认并开始生成 - 弹出黑色胶片
-  const handleConfirmAndGenerate = async () => {
-    if (!capturedPhoto || !editDream.trim()) {
-      setError('请输入梦想');
-      playSound('error');
-      return;
-    }
-
-    if (!settingsManager.hasApiKey()) {
-      setShowSettings(true);
-      return;
-    }
-
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-
-    // 创建新胶片（黑色状态，出现在相机上方）
-    const filmId = Date.now().toString();
-    // 胶片出现在相机上方
-    const filmX = 130;
-    const filmY = 30;
-
-    const newFilm: FilmPhoto = {
-      id: filmId,
-      originalPhoto: capturedPhoto,
-      name: editName.trim(),
-      dream: editDream.trim(),
-      date: dateStr,
-      isGenerating: true,
-      isDeveloping: false,
-      developProgress: 0,
-      position: { x: filmX, y: filmY },
-      isDragging: false,
-      isEjecting: true,
-      ejectProgress: 0,
-    };
-
-    // 播放确认生成音效
-    playSound('confirm');
-
-    setFilms(prev => [...prev, newFilm]);
-    setCapturedPhoto(null);
-    setEditName('');
-    setEditDream('');
-    setError(null);
+  // 单张胶片的弹出和生成逻辑
+  const ejectAndGenerateFilm = async (film: FilmPhoto) => {
+    const filmId = film.id;
 
     // 播放胶片弹出音效
     playSound('eject');
 
-    // 胶片缓慢出现动画（渐入效果）- 更慢的速度
+    // 胶片缓慢出现动画（渐入效果）
     let ejectProgress = 0;
     const ejectInterval = setInterval(() => {
-      ejectProgress += 1; // 更慢的增量
+      ejectProgress += 1;
       setFilms(prev => prev.map(f =>
         f.id === filmId
           ? { ...f, ejectProgress: Math.min(ejectProgress, 100) }
@@ -509,13 +525,13 @@ function App() {
             : f
         ));
       }
-    }, 50); // 更长的间隔
+    }, 50);
 
     // 开始AI生成
     try {
       const config = settingsManager.getConfig();
-      const promptText = generateCustomPrompt(newFilm.dream, config.customPrompt);
-      const response = await generateImage(promptText, { image: newFilm.originalPhoto });
+      const promptText = generateCustomPrompt(film.dream, config.customPrompt);
+      const response = await generateImage(promptText, { image: film.originalPhoto });
 
       if (response.data?.[0]?.url) {
         const imageUrl = response.data[0].url;
@@ -527,31 +543,34 @@ function App() {
             : f
         ));
 
-        // 播放显影音效
-        startDevelopingSound();
+        // 播放显影音效（只在第一张开始显影时启动）
+        developingCountRef.current += 1;
+        if (developingCountRef.current === 1) {
+          startDevelopingSound();
+        }
 
-        // 显影动画（逐渐显示）- 更慢的速度
+        // 显影动画（逐渐显示）
         let progress = 0;
-        let hasAddedToHistory = false; // 防止重复添加
         const developInterval = setInterval(() => {
-          progress += 1; // 更慢的增量
+          progress += 1;
 
           if (progress >= 100) {
             clearInterval(developInterval);
 
-            // 停止显影音效，播放完成音效
-            stopDevelopingSound();
+            // 停止显影音效（只在最后一张完成时停止）
+            developingCountRef.current -= 1;
+            if (developingCountRef.current === 0) {
+              stopDevelopingSound();
+            }
             playSound('complete');
 
-            // 防止重复添加到历史
-            if (hasAddedToHistory) return;
-            hasAddedToHistory = true;
+            // 使用 ref 防止重复添加（React 并发模式可能多次调用 setState 回调）
+            if (addedHistoryIdsRef.current.has(filmId)) return;
+            addedHistoryIdsRef.current.add(filmId);
 
-            // 显影完成后，获取实际位置，保存到历史并移除胶片
-            // 先获取胶片在屏幕上的实际位置
             const filmElement = document.querySelector(`[data-film-id="${filmId}"]`);
             const canvasElement = canvasRef.current;
-            let actualPosition = { x: 500, y: 150 }; // 默认位置
+            let actualPosition = { x: 500, y: 150 };
 
             if (filmElement && canvasElement) {
               const filmRect = filmElement.getBoundingClientRect();
@@ -565,57 +584,245 @@ function App() {
             setFilms(prev => {
               const completedFilm = prev.find(f => f.id === filmId);
               if (completedFilm) {
-                // 如果用户拖拽过，使用拖拽后的位置；否则使用实际屏幕位置
                 const finalPosition = completedFilm.isDragging ||
                   (completedFilm.position.x !== 130 && completedFilm.position.y !== 30)
                     ? completedFilm.position
                     : actualPosition;
 
-                // 添加到历史记录
                 const newItem: HistoryItem = {
-                  id: Date.now().toString(),
+                  id: filmId + '-history', // 使用 filmId 确保唯一性
                   name: completedFilm.name || '',
                   dream: completedFilm.dream,
                   originalPhoto: completedFilm.originalPhoto,
                   resultPhoto: imageUrl,
                   timestamp: Date.now(),
                   position: finalPosition,
+                  isOnCanvas: true, // 新生成的照片默认显示在画板上
                 };
-                // 延迟添加到 history，避免状态冲突
-                setTimeout(() => {
+                // 使用 queueMicrotask 避免在 setState 回调内嵌套 setState
+                queueMicrotask(() => {
                   setHistory(prevHistory => {
-                    // 检查是否已存在
-                    if (prevHistory.some(h => h.originalPhoto === newItem.originalPhoto && h.dream === newItem.dream)) {
+                    // 再次检查防止重复
+                    if (prevHistory.some(h => h.id === newItem.id)) {
                       return prevHistory;
                     }
                     const newHistory = [newItem, ...prevHistory].slice(0, 50);
                     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
                     return newHistory;
                   });
-                }, 50);
+                });
               }
-              // 移除已完成的胶片
               return prev.filter(f => f.id !== filmId);
             });
           } else {
-            // 更新显影进度
             setFilms(prev => prev.map(f =>
               f.id === filmId
                 ? { ...f, developProgress: progress }
                 : f
             ));
           }
-        }, 80); // 更长的间隔
+        }, 80);
 
       } else {
         throw new Error('生成失败，请重试');
       }
     } catch (e: any) {
-      setError(e.message || '生成失败，请重试');
+      const errorMsg = e.message || '生成失败，请重试';
+      setError(errorMsg);
       playSound('error');
-      // 移除失败的胶片
-      setFilms(prev => prev.filter(f => f.id !== filmId));
+      setFilms(prev => prev.map(f =>
+        f.id === filmId
+          ? { ...f, isGenerating: false, isFailed: true, errorMessage: errorMsg }
+          : f
+      ));
     }
+  };
+
+  // 确认并开始生成 - 弹出黑色胶片（支持多张）
+  const handleConfirmAndGenerate = async () => {
+    if (!capturedPhoto || !editDream.trim()) {
+      setError('请输入梦想');
+      playSound('error');
+      return;
+    }
+
+    if (!settingsManager.hasApiKey()) {
+      setShowApiKeyWarning(true);
+      setShowSettings(true);
+      // 延迟聚焦到输入框（等待弹窗渲染）
+      setTimeout(() => {
+        apiKeyInputRef.current?.focus();
+      }, 100);
+      return;
+    }
+
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+
+    // 保存当前表单数据
+    const photoData = capturedPhoto;
+    const nameData = editName.trim();
+    const dreamData = editDream.trim();
+    const count = generateCount;
+
+    // 播放确认生成音效
+    playSound('confirm');
+
+    // 清空表单
+    setCapturedPhoto(null);
+    setEditName('');
+    setEditDream('');
+    setGenerateCount(1); // 重置为默认1张
+    setError(null);
+
+    // 重新连接摄像头显示
+    setTimeout(() => {
+      if (videoRef.current && streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+    }, 50);
+
+    // 创建多张胶片并顺序弹出
+    for (let i = 0; i < count; i++) {
+      const filmId = Date.now().toString() + '-' + i;
+      // 每张胶片位置错开（向右下偏移）
+      const filmX = 130 + i * 30;
+      const filmY = 30 + i * 20;
+
+      const newFilm: FilmPhoto = {
+        id: filmId,
+        originalPhoto: photoData,
+        name: nameData,
+        dream: dreamData,
+        date: dateStr,
+        isGenerating: true,
+        isDeveloping: false,
+        developProgress: 0,
+        position: { x: filmX, y: filmY },
+        isDragging: false,
+        isEjecting: true,
+        ejectProgress: 0,
+        isFailed: false,
+      };
+
+      // 延迟添加每张胶片（顺序弹出效果）
+      await new Promise<void>(resolve => {
+        setTimeout(() => {
+          setFilms(prev => [...prev, newFilm]);
+          // 开始弹出和生成（不等待完成）
+          ejectAndGenerateFilm(newFilm);
+          resolve();
+        }, i * 600); // 每张间隔 600ms
+      });
+    }
+  };
+
+  // 重试生成失败的胶片
+  const handleRetryGenerate = async (filmId: string) => {
+    const film = films.find(f => f.id === filmId);
+    if (!film || !film.isFailed) return;
+
+    // 重置状态为生成中
+    setFilms(prev => prev.map(f =>
+      f.id === filmId
+        ? { ...f, isFailed: false, isGenerating: true, errorMessage: undefined }
+        : f
+    ));
+    setError(null);
+
+    try {
+      const config = settingsManager.getConfig();
+      const promptText = generateCustomPrompt(film.dream, config.customPrompt);
+      const response = await generateImage(promptText, { image: film.originalPhoto });
+
+      if (response.data?.[0]?.url) {
+        const imageUrl = response.data[0].url;
+
+        // 开始显影动画
+        setFilms(prev => prev.map(f =>
+          f.id === filmId
+            ? { ...f, result: imageUrl, isGenerating: false, isDeveloping: true }
+            : f
+        ));
+
+        // 播放显影音效（只在第一张开始显影时启动）
+        developingCountRef.current += 1;
+        if (developingCountRef.current === 1) {
+          startDevelopingSound();
+        }
+
+        // 显影动画
+        let progress = 0;
+        const developInterval = setInterval(() => {
+          progress += 1;
+
+          if (progress >= 100) {
+            clearInterval(developInterval);
+
+            // 停止显影音效（只在最后一张完成时停止）
+            developingCountRef.current -= 1;
+            if (developingCountRef.current === 0) {
+              stopDevelopingSound();
+            }
+            playSound('complete');
+
+            // 使用 ref 防止重复添加
+            if (addedHistoryIdsRef.current.has(filmId)) return;
+            addedHistoryIdsRef.current.add(filmId);
+
+            setFilms(prev => {
+              const completedFilm = prev.find(f => f.id === filmId);
+              if (completedFilm) {
+                const newItem: HistoryItem = {
+                  id: filmId + '-history',
+                  name: completedFilm.name || '',
+                  dream: completedFilm.dream,
+                  originalPhoto: completedFilm.originalPhoto,
+                  resultPhoto: imageUrl,
+                  timestamp: Date.now(),
+                  position: completedFilm.position,
+                  isOnCanvas: true, // 新生成的照片默认显示在画板上
+                };
+                queueMicrotask(() => {
+                  setHistory(prevHistory => {
+                    if (prevHistory.some(h => h.id === newItem.id)) {
+                      return prevHistory;
+                    }
+                    const newHistory = [newItem, ...prevHistory].slice(0, 50);
+                    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+                    return newHistory;
+                  });
+                });
+              }
+              return prev.filter(f => f.id !== filmId);
+            });
+          } else {
+            setFilms(prev => prev.map(f =>
+              f.id === filmId
+                ? { ...f, developProgress: progress }
+                : f
+            ));
+          }
+        }, 80);
+      } else {
+        throw new Error('生成失败，请重试');
+      }
+    } catch (e: any) {
+      const errorMsg = e.message || '生成失败，请重试';
+      setError(errorMsg);
+      playSound('error');
+      setFilms(prev => prev.map(f =>
+        f.id === filmId
+          ? { ...f, isGenerating: false, isFailed: true, errorMessage: errorMsg }
+          : f
+      ));
+    }
+  };
+
+  // 删除失败的胶片
+  const handleDeleteFailedFilm = (filmId: string) => {
+    playSound('click');
+    setFilms(prev => prev.filter(f => f.id !== filmId));
   };
 
   // 取消拍照
@@ -742,6 +949,30 @@ function App() {
     setDeleteConfirmItem(null);
   };
 
+  // 收纳照片到 Gallery
+  const collectPhoto = (itemId: string) => {
+    playSound('click');
+    setHistory(prev => {
+      const updated = prev.map(h =>
+        h.id === itemId ? { ...h, isOnCanvas: false } : h
+      );
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // 从 Gallery 放回画板
+  const restoreToCanvas = (itemId: string) => {
+    playSound('click');
+    setHistory(prev => {
+      const updated = prev.map(h =>
+        h.id === itemId ? { ...h, isOnCanvas: true } : h
+      );
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // 打开分享菜单
   const openShareMenu = async () => {
     if (!selectedHistoryItem) return;
@@ -863,6 +1094,14 @@ function App() {
       hasDraggedRef.current = true;
     }
 
+    // 检测是否悬停在 Gallery 按钮上
+    if (galleryBtnRef.current) {
+      const rect = galleryBtnRef.current.getBoundingClientRect();
+      const isOver = clientX >= rect.left && clientX <= rect.right &&
+                     clientY >= rect.top && clientY <= rect.bottom;
+      setIsOverGallery(isOver);
+    }
+
     const newX = historyDragRef.current.offsetX + dx;
     const newY = historyDragRef.current.offsetY + dy;
 
@@ -877,15 +1116,30 @@ function App() {
   const handleHistoryDragEnd = useCallback(() => {
     if (!historyDragRef.current) return;
 
-    // 保存位置到 localStorage
-    setHistory(prev => {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(prev));
-      return prev;
-    });
+    const draggedId = historyDragRef.current.id;
 
+    // 如果放在 Gallery 按钮上，收纳照片
+    if (isOverGallery) {
+      playSound('click');
+      setHistory(prev => {
+        const updated = prev.map(h =>
+          h.id === draggedId ? { ...h, isOnCanvas: false } : h
+        );
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    } else {
+      // 保存位置到 localStorage
+      setHistory(prev => {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(prev));
+        return prev;
+      });
+    }
+
+    setIsOverGallery(false);
     setDraggingHistoryId(null);
     historyDragRef.current = null;
-  }, []);
+  }, [isOverGallery]);
 
   // 监听历史记录拖拽事件
   useEffect(() => {
@@ -904,6 +1158,90 @@ function App() {
     }
   }, [draggingHistoryId, handleHistoryDragMove, handleHistoryDragEnd]);
 
+  // 相机拖拽开始
+  const handleCameraDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    // 如果点击的是按钮或输入框，不启动拖拽
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' ||
+        target.closest('button') || target.closest('input') || target.closest('textarea') ||
+        target.closest('.side-form') || target.closest('.side-result')) {
+      return;
+    }
+
+    e.preventDefault();
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    // 获取当前相机位置
+    const currentX = cameraPosition?.x ?? 0;
+    const currentY = cameraPosition?.y ?? 0;
+
+    cameraDragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      offsetX: currentX,
+      offsetY: currentY,
+    };
+
+    setIsDraggingCamera(true);
+  }, [cameraPosition]);
+
+  // 相机拖拽移动
+  const handleCameraDragMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!cameraDragRef.current) return;
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    const dx = clientX - cameraDragRef.current.startX;
+    const dy = clientY - cameraDragRef.current.startY;
+
+    let newX = cameraDragRef.current.offsetX + dx;
+    let newY = cameraDragRef.current.offsetY + dy;
+
+    // 限制拖拽范围（保留边距给表单和胶片）
+    const minX = -window.innerWidth / 2 + 350; // 左边留空间给表单
+    const maxX = window.innerWidth / 2 - 350;  // 右边留空间给胶片
+    const minY = -window.innerHeight / 2 + 250;
+    const maxY = window.innerHeight / 2 - 150;
+
+    newX = Math.max(minX, Math.min(maxX, newX));
+    newY = Math.max(minY, Math.min(maxY, newY));
+
+    setCameraPosition({ x: newX, y: newY });
+  }, []);
+
+  // 相机拖拽结束
+  const handleCameraDragEnd = useCallback(() => {
+    if (!cameraDragRef.current) return;
+
+    // 保存位置到 localStorage
+    if (cameraPosition) {
+      localStorage.setItem(CAMERA_POSITION_KEY, JSON.stringify(cameraPosition));
+    }
+
+    setIsDraggingCamera(false);
+    cameraDragRef.current = null;
+  }, [cameraPosition]);
+
+  // 监听相机拖拽事件
+  useEffect(() => {
+    if (isDraggingCamera) {
+      window.addEventListener('mousemove', handleCameraDragMove);
+      window.addEventListener('mouseup', handleCameraDragEnd);
+      window.addEventListener('touchmove', handleCameraDragMove);
+      window.addEventListener('touchend', handleCameraDragEnd);
+
+      return () => {
+        window.removeEventListener('mousemove', handleCameraDragMove);
+        window.removeEventListener('mouseup', handleCameraDragEnd);
+        window.removeEventListener('touchmove', handleCameraDragMove);
+        window.removeEventListener('touchend', handleCameraDragEnd);
+      };
+    }
+  }, [isDraggingCamera, handleCameraDragMove, handleCameraDragEnd]);
+
   // 保存设置
   const handleSaveSettings = () => {
     settingsManager.updateConfig({
@@ -914,6 +1252,7 @@ function App() {
       templateId: tempTemplateId,
     } as any);
     setShowSettings(false);
+    setShowApiKeyWarning(false);
   };
 
   // 切换模板
@@ -1000,8 +1339,19 @@ function App() {
         <button className="settings-btn" onClick={() => { playSound('click'); setShowSettings(true); }}>
           SETTINGS
         </button>
-        <button className="history-btn" onClick={() => { playSound('click'); setShowHistory(true); }}>
-          GALLERY
+        <button
+          ref={galleryBtnRef}
+          className={`history-btn ${draggingHistoryId ? 'drop-target' : ''} ${isOverGallery ? 'drop-hover' : ''}`}
+          onClick={() => { playSound('click'); setShowHistory(true); }}
+        >
+          {draggingHistoryId ? '📥 拖到这里收纳' : (
+            <>
+              GALLERY
+              {history.filter(h => !h.isOnCanvas).length > 0 && (
+                <span className="gallery-badge">{history.filter(h => !h.isOnCanvas).length}</span>
+              )}
+            </>
+          )}
         </button>
       </div>
 
@@ -1009,7 +1359,15 @@ function App() {
       <main className="canvas-area" ref={canvasRef}>
         {/* 相机区域（包含左侧表单、相机、右侧结果） */}
         <div className="camera-section">
-          <div className="camera-wrapper">
+          <div
+            ref={cameraWrapperRef}
+            className={`camera-wrapper ${isDraggingCamera ? 'dragging' : ''}`}
+            style={cameraPosition ? {
+              transform: `translate(${cameraPosition.x}px, ${cameraPosition.y}px)`,
+            } : undefined}
+            onMouseDown={handleCameraDragStart}
+            onTouchStart={handleCameraDragStart}
+          >
             {/* 左侧表单 - 拍照后从相机左侧延伸 */}
             <div className={`side-form ${capturedPhoto ? 'visible' : ''}`}>
               <div className="side-form-content">
@@ -1027,6 +1385,20 @@ function App() {
                   className="input-dream"
                   rows={3}
                 />
+                <div className="generate-count-selector">
+                  <span className="count-label">生成数量</span>
+                  <div className="count-buttons">
+                    {[1, 2, 3, 4].map(count => (
+                      <button
+                        key={count}
+                        className={`count-btn ${generateCount === count ? 'active' : ''}`}
+                        onClick={() => { playSound('click'); setGenerateCount(count); }}
+                      >
+                        {count}张
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="side-form-actions">
                   <button className="btn-cancel" onClick={() => { playSound('click'); cancelCapture(); }}>取消</button>
                   <button
@@ -1111,7 +1483,7 @@ function App() {
               className="camera-logo-btn"
               onMouseDown={handleLogoPress}
               onMouseUp={handleLogoRelease}
-              onMouseLeave={handleLogoRelease}
+              onMouseLeave={handleLogoLeave}
               onTouchStart={handleLogoPress}
               onTouchEnd={handleLogoRelease}
               title="点击切换风格模板，长按打开设置"
@@ -1146,38 +1518,76 @@ function App() {
                 </span>
               </div>
             )}
-          </div>
 
-          {/* 右侧 - 生成的照片从这里滑出 */}
-          <div className="side-result">
-            {films.filter(f => (f.isEjecting || f.isGenerating || f.isDeveloping) && !f.isDragging).map((film) => (
+            {/* 右侧 - 生成的照片从这里滑出（在 camera-wrapper 内部，跟随相机移动） */}
+            <div className="side-result">
+            {films.filter(f => (f.isEjecting || f.isGenerating || f.isDeveloping || f.isFailed) && !f.isDragging).map((film) => (
               <div
                 key={film.id}
                 data-film-id={film.id}
-                className={`side-result-film ${film.ejectProgress >= 100 ? 'visible' : ''}`}
+                className={`side-result-film ${film.ejectProgress >= 100 ? 'visible' : ''} ${film.isFailed ? 'failed' : ''}`}
                 style={{
                   transform: `translateX(${film.ejectProgress - 100}%)`,
                 }}
-                onMouseDown={(e) => handleDragStart(e, film.id)}
-                onTouchStart={(e) => handleDragStart(e, film.id)}
+                onMouseDown={(e) => !film.isFailed && handleDragStart(e, film.id)}
+                onTouchStart={(e) => !film.isFailed && handleDragStart(e, film.id)}
               >
                 <div className="film-image">
-                  {film.result && (
+                  {/* 失败状态显示原图 */}
+                  {film.isFailed && (
+                    <div className="film-photo">
+                      <img src={film.originalPhoto} alt="原图" />
+                    </div>
+                  )}
+                  {film.result && !film.isFailed && (
                     <div className="film-photo">
                       <img src={film.result} alt="照片" />
                     </div>
                   )}
-                  <div
-                    className="film-black"
-                    style={{ opacity: !film.result ? 1 : 1 - (film.developProgress / 100) }}
-                  ></div>
+                  {!film.isFailed && (
+                    <div
+                      className="film-black"
+                      style={{ opacity: !film.result ? 1 : 1 - (film.developProgress / 100) }}
+                    ></div>
+                  )}
+                  {/* 失败遮罩层 */}
+                  {film.isFailed && (
+                    <div className="film-failed-overlay">
+                      <span className="film-failed-icon">✕</span>
+                      <span className="film-failed-text">生成失败</span>
+                    </div>
+                  )}
                 </div>
                 <div className="film-info">
                   <span className="film-dream">{film.dream}</span>
                   <span className="film-date">{film.date}</span>
                 </div>
+                {/* 失败状态的操作按钮 */}
+                {film.isFailed && (
+                  <div className="film-failed-actions">
+                    <button
+                      className="film-retry-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRetryGenerate(film.id);
+                      }}
+                    >
+                      重试
+                    </button>
+                    <button
+                      className="film-delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteFailedFilm(film.id);
+                      }}
+                    >
+                      删除
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
+            </div>
           </div>
         </div>
 
@@ -1220,8 +1630,8 @@ function App() {
           );
         })}
 
-        {/* 画板上的历史照片 */}
-        {history.map((item) => (
+        {/* 画板上的历史照片（只显示 isOnCanvas=true 的） */}
+        {history.filter(h => h.isOnCanvas).map((item) => (
           <div
             key={item.id}
             className={`film-card completed ${draggingHistoryId === item.id ? 'dragging' : ''}`}
@@ -1247,6 +1657,19 @@ function App() {
               )}
               <span className="film-dream">{item.dream}</span>
             </div>
+            {/* 收纳按钮 */}
+            <button
+              className="film-collect"
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                collectPhoto(item.id);
+              }}
+              title="收纳到相册"
+            >
+              📥
+            </button>
             <button
               className="film-delete"
               onMouseDown={(e) => e.stopPropagation()}
@@ -1310,7 +1733,7 @@ function App() {
                   return (
                     <div
                       key={item.id}
-                      className="gallery-polaroid"
+                      className={`gallery-polaroid ${!item.isOnCanvas ? 'collected' : ''}`}
                       style={{ '--rotation': `${rotation}deg` } as React.CSSProperties}
                       onClick={() => setSelectedHistoryItem(item)}
                     >
@@ -1321,6 +1744,19 @@ function App() {
                         <span className="gallery-polaroid-dream">{item.dream}</span>
                         <span className="gallery-polaroid-date">{new Date(item.timestamp).toLocaleDateString()}</span>
                       </div>
+                      {/* 放回画板按钮（仅已收纳的照片显示） */}
+                      {!item.isOnCanvas && (
+                        <button
+                          className="gallery-polaroid-restore"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            restoreToCanvas(item.id);
+                          }}
+                          title="放回画板"
+                        >
+                          📤
+                        </button>
+                      )}
                       <button
                         className="gallery-polaroid-delete"
                         onClick={(e) => {
@@ -1341,12 +1777,18 @@ function App() {
 
       {/* 设置弹窗 */}
       {showSettings && (
-        <div className="settings-overlay" onClick={() => { playSound('click'); setShowSettings(false); }}>
+        <div className="settings-overlay" onClick={() => { playSound('click'); setShowSettings(false); setShowApiKeyWarning(false); }}>
           <div className="settings-container" onClick={(e) => e.stopPropagation()}>
             <div className="settings-header">
               <h2>⚙️ 设置</h2>
-              <button className="btn-close" onClick={() => { playSound('click'); setShowSettings(false); }}>✕</button>
+              <button className="btn-close" onClick={() => { playSound('click'); setShowSettings(false); setShowApiKeyWarning(false); }}>✕</button>
             </div>
+            {/* API Key 缺失警告 */}
+            {showApiKeyWarning && (
+              <div className="api-key-warning">
+                ⚠️ 需要填写 API Key 才能生成图片
+              </div>
+            )}
             <div className="settings-form">
               <div className="settings-field">
                 <label>API 地址</label>
@@ -1358,14 +1800,21 @@ function App() {
                   className="input-name"
                 />
               </div>
-              <div className="settings-field">
-                <label>API Key</label>
+              <div className={`settings-field ${showApiKeyWarning ? 'highlight' : ''}`}>
+                <label>API Key {showApiKeyWarning && <span className="required-mark">*必填</span>}</label>
                 <input
+                  ref={apiKeyInputRef}
                   type="password"
                   value={tempApiKey}
-                  onChange={(e) => setTempApiKey(e.target.value)}
+                  onChange={(e) => {
+                    setTempApiKey(e.target.value);
+                    // 输入后清除警告高亮
+                    if (e.target.value.trim()) {
+                      setShowApiKeyWarning(false);
+                    }
+                  }}
                   placeholder="输入你的 API Key"
-                  className="input-name"
+                  className={`input-name ${showApiKeyWarning ? 'highlight' : ''}`}
                 />
                 <p className="settings-hint">
                   获取地址: <a href="https://api.tu-zi.com/token" target="_blank" rel="noopener noreferrer">https://api.tu-zi.com/token</a>

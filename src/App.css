@@ -2086,6 +2086,16 @@ body {
 }
 
 /* 数据备份按钮 */
+.storage-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
 .backup-buttons {
   display: flex;
   gap: 12px;
@@ -2131,6 +2141,13 @@ body {
 
 .backup-btn.import:hover {
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.backup-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* 模板列表 */

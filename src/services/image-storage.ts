@@ -141,35 +141,73 @@ export async function deleteImage(id: string): Promise<boolean> {
 }
 
 /**
+ * 进度回调类型
+ */
+export type ProgressCallback = (current: number, total: number, message: string) => void;
+
+/**
+ * Blob 转 base64
+ */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
  * 获取所有图片（用于导出）
+ * @param onProgress 进度回调
  * @returns { id: base64 } 格式的对象
  */
-export async function getAllImagesAsBase64(): Promise<Record<string, string>> {
+export async function getAllImagesAsBase64(
+  onProgress?: ProgressCallback
+): Promise<Record<string, string>> {
   try {
     const db = await getDB();
-    return new Promise((resolve, reject) => {
+
+    // 第一步：获取所有 key
+    onProgress?.(0, 100, '正在读取图片列表...');
+    const keys = await new Promise<string[]>((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.openCursor();
-      const result: Record<string, string> = {};
-
-      request.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-        if (cursor) {
-          const blob = cursor.value as Blob;
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            result[cursor.key as string] = reader.result as string;
-            cursor.continue();
-          };
-          reader.readAsDataURL(blob);
-        } else {
-          // 等待所有 FileReader 完成
-          setTimeout(() => resolve(result), 100);
-        }
-      };
+      const request = store.getAllKeys();
+      request.onsuccess = () => resolve(request.result as string[]);
       request.onerror = () => reject(request.error);
     });
+
+    if (keys.length === 0) {
+      onProgress?.(100, 100, '没有图片需要导出');
+      return {};
+    }
+
+    // 第二步：逐个获取并转换
+    const result: Record<string, string> = {};
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      onProgress?.(
+        Math.round((i / keys.length) * 100),
+        100,
+        `正在处理图片 ${i + 1}/${keys.length}...`
+      );
+
+      const blob = await new Promise<Blob | null>((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(key);
+        request.onsuccess = () => resolve(request.result as Blob | null);
+        request.onerror = () => reject(request.error);
+      });
+
+      if (blob) {
+        result[key] = await blobToBase64(blob);
+      }
+    }
+
+    onProgress?.(100, 100, `完成！共导出 ${keys.length} 张图片`);
+    return result;
   } catch (error) {
     console.error('导出图片失败:', error);
     return {};

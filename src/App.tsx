@@ -32,6 +32,7 @@ import {
   getAllImagesAsBase64,
   importImagesFromBase64,
   getStorageInfo,
+  type ProgressCallback,
 } from './services/image-storage';
 import './App.css';
 
@@ -1426,12 +1427,21 @@ function App() {
 
   // 导出数据（包含图片）
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState({ percent: 0, message: '' });
 
   const handleExportData = async () => {
     setIsExporting(true);
+    setExportProgress({ percent: 0, message: '准备导出...' });
+
     try {
-      // 获取 IndexedDB 中的所有图片（转为 base64）
-      const images = await getAllImagesAsBase64();
+      // 获取 IndexedDB 中的所有图片（转为 base64），带进度回调
+      const onProgress: ProgressCallback = (current, _total, message) => {
+        setExportProgress({ percent: current, message });
+      };
+
+      const images = await getAllImagesAsBase64(onProgress);
+
+      setExportProgress({ percent: 95, message: '正在生成备份文件...' });
 
       const exportData = {
         version: 2, // 版本升级，包含图片数据
@@ -1456,13 +1466,20 @@ function App() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      setExportProgress({ percent: 100, message: '导出完成！' });
       playSound('complete');
+
+      // 延迟重置状态
+      setTimeout(() => {
+        setIsExporting(false);
+        setExportProgress({ percent: 0, message: '' });
+      }, 1500);
     } catch (e) {
       console.error('导出失败:', e);
       setError('导出失败');
       playSound('error');
-    } finally {
       setIsExporting(false);
+      setExportProgress({ percent: 0, message: '' });
     }
   };
 
@@ -2148,6 +2165,22 @@ function App() {
                     💾 本地存储：{storageInfo.count} 张图片，约 {storageInfo.estimatedSize}
                   </p>
                 )}
+
+                {/* 导出进度条 */}
+                {isExporting && (
+                  <div className="export-progress">
+                    <div className="export-progress-bar">
+                      <div
+                        className="export-progress-fill"
+                        style={{ width: `${exportProgress.percent}%` }}
+                      />
+                    </div>
+                    <p className="export-progress-text">
+                      {exportProgress.message} ({exportProgress.percent}%)
+                    </p>
+                  </div>
+                )}
+
                 <div className="backup-buttons">
                   <button
                     className="backup-btn export"

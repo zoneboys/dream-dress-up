@@ -34,7 +34,8 @@ src/
 │   ├── image-api.ts        # AI 图像生成 API 调用
 │   ├── sound.ts            # 音效服务（Web Audio API 合成）
 │   ├── share.ts            # 分享服务（生成分享卡片、系统分享）
-│   └── image-storage.ts    # IndexedDB 图片存储服务
+│   ├── image-storage.ts    # IndexedDB 图片存储服务
+│   └── virtual-camera.ts   # 虚拟摄像头服务（素材管理、循环播放）
 └── constants/dreams.ts     # 提示词模板定义
 ```
 
@@ -87,6 +88,24 @@ shutter.mp3, upload.mp3, cameraOn.mp3, cameraOff.mp3, modeSwitch.mp3,
 confirm.mp3, complete.mp3, error.mp3, eject.mp3, developing.mp3, click.mp3
 ```
 支持格式：mp3、wav、ogg。有自定义文件时优先使用，否则用合成音效。
+
+### 虚拟摄像头
+
+- 在设置面板中开启，默认关闭
+- 开启后用上传的图片/视频代替真实摄像头
+- 取景框循环播放上传的素材（图片 3 秒轮播，视频播完自动切换下一个）
+- 相机下方的上传按钮变为「+」，用于添加素材（支持多选）
+- 点击拍照按钮截取当前画面（图片直接使用，视频截取当前帧）
+- **开关按钮**：与真实摄像头体验一致，可关闭/打开取景框显示，带光圈动画
+- **状态保持**：关闭再打开后，视频从上次位置继续播放，图片保持当前显示
+- 素材不会镜像翻转（与真实摄像头不同）
+- 素材存储在 localStorage（key: `dream-dress-virtual-camera`）
+- 服务：`src/services/virtual-camera.ts`
+- 主要 API：
+  - `isVirtualCameraEnabled()` / `setVirtualCameraEnabled(enabled)` - 开关状态
+  - `getVirtualMediaList()` / `saveVirtualMediaList(list)` - 素材列表
+  - `processMediaFile(file)` - 处理上传的图片/视频
+  - `captureVideoFrame(video)` - 从视频截取当前帧
 
 ### 模板快速切换
 

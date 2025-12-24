@@ -35,7 +35,8 @@ src/
 │   ├── sound.ts            # 音效服务（Web Audio API 合成）
 │   ├── share.ts            # 分享服务（生成分享卡片、系统分享）
 │   ├── image-storage.ts    # IndexedDB 图片存储服务
-│   └── virtual-camera.ts   # 虚拟摄像头服务（素材管理、循环播放）
+│   ├── virtual-camera.ts   # 虚拟摄像头服务（素材管理、循环播放）
+│   └── export.ts           # 导出导入服务（照片/配置/全量导出，支持 ZIP）
 └── constants/dreams.ts     # 提示词模板定义
 ```
 
@@ -192,14 +193,16 @@ confirm.mp3, complete.mp3, error.mp3, eject.mp3, developing.mp3, click.mp3
 
 ### 数据导入导出
 
-- 在设置面板底部有「📤 导出数据」和「📥 导入数据」按钮
+- 在设置面板底部有「📤 导出」下拉菜单和「📥 导入数据」按钮
 - 显示本地存储统计：图片数量和估算大小
-- 导出为 JSON 文件（版本2），包含：
-  - localStorage 数据：历史记录元信息、相机位置、自定义模板、音效设置、API 设置
-  - IndexedDB 图片：所有图片转为 base64 嵌入（确保完整备份）
-- 导入时自动恢复 localStorage 和 IndexedDB 数据
+- **导出选项**：
+  - **导出照片**：单张直接下载 PNG，多张打包为 ZIP
+  - **导出配置**：无虚拟摄像头素材时导出 JSON，有素材时打包为 ZIP（含 config.json + virtual-media 文件夹）
+  - **导出全部**：完整备份为 ZIP（config.json + images 文件夹 + virtual-media 文件夹）
+- **导入支持**：自动识别 JSON 和 ZIP 格式，智能解析并恢复数据
 - 导入后自动提示刷新页面加载数据
-- 文件名格式：`dream-dress-backup-YYYY-MM-DD.json`
+- 服务：`src/services/export.ts`
+- 依赖：JSZip（用于 ZIP 打包/解压）
 
 ### 相机拖拽
 
